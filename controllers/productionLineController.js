@@ -31,6 +31,7 @@ const createProductionLine = async (req, res) => {
 const getProductionLines = async (req, res) => {
   try {
     const productionLines = await ProductionLine.find({}).populate("machines");
+
     res.status(200).json(productionLines);
   } catch (error) {
     res.status(400).json({ message: error.message });
@@ -54,7 +55,7 @@ const getProductionLineById = async (req, res) => {
 // @desc    Update a production line
 const updateProductionLine = async (req, res) => {
   try {
-    const { name, description, status, machines } = req.body;
+    const { name, description, status, machines, productionId } = req.body;
     const productionLine = await ProductionLine.findById(req.params.id);
 
     if (!productionLine) {
@@ -62,6 +63,7 @@ const updateProductionLine = async (req, res) => {
     }
 
     // Update only the fields that are provided in the request
+    if (productionId !== undefined) productionLine.productionId = productionId;
     if (name !== undefined) productionLine.name = name;
     if (description !== undefined) productionLine.description = description;
     if (status !== undefined) productionLine.status = status;

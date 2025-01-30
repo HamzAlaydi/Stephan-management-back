@@ -1,7 +1,7 @@
 // controllers/machineController.js
 const Machine = require("../models/Machine");
 const ProductionLine = require("../models/ProductionLine");
-
+const MaintenanceRequest = require("../models/MaintenanceRequest");
 // @desc    Create a new machine
 const createMachine = async (req, res) => {
   try {
@@ -21,7 +21,7 @@ const createMachine = async (req, res) => {
     }
 
     // Check if the production line exists
-    const productionLine = await ProductionLine.findOne({ productionId });
+    const productionLine = await ProductionLine.findOne({ _id: productionId });
     if (!productionLine) {
       return res.status(404).json({ message: "Production line not found" });
     }
@@ -81,37 +81,22 @@ const getMachineById = async (req, res) => {
 
 const updateMachine = async (req, res) => {
   try {
-    const { name, description, productionLine, status } = req.body;
+    const { maintenanceCost, ...otherUpdates } = req.body;
     const machine = await Machine.findById(req.params.id);
 
     if (!machine) {
       return res.status(404).json({ message: "Machine not found" });
     }
 
-    // Update only the fields that are provided in the request
-    if (name !== undefined) machine.name = name;
-    if (description !== undefined) machine.description = description;
-    if (status !== undefined) machine.status = status;
-
-    // Update productionLine if provided
-    if (productionLine !== undefined) {
-      const newProductionLine = await ProductionLine.findById(productionLine);
-      if (!newProductionLine) {
-        return res.status(404).json({ message: "Production line not found" });
-      }
-
-      // Remove machine from the old production line's machines array
-      await ProductionLine.findByIdAndUpdate(machine.productionLine, {
-        $pull: { machines: machine._id },
-      });
-
-      // Add machine to the new production line's machines array
-      await ProductionLine.findByIdAndUpdate(productionLine, {
-        $push: { machines: machine._id },
-      });
-
-      machine.productionLine = productionLine;
+    // Handle maintenance cost updates
+    if (typeof maintenanceCost === "number") {
+      machine.maintenanceCost = maintenanceCost;
     }
+
+    // Update other fields
+    Object.keys(otherUpdates).forEach((key) => {
+      machine[key] = otherUpdates[key];
+    });
 
     const updatedMachine = await machine.save();
     res.status(200).json(updatedMachine);
@@ -119,7 +104,6 @@ const updateMachine = async (req, res) => {
     res.status(400).json({ message: error.message });
   }
 };
-
 // @desc    Delete a machine
 const deleteMachine = async (req, res) => {
   try {
@@ -142,10 +126,77 @@ const deleteMachine = async (req, res) => {
   }
 };
 
+// Fetch machine details with maintenance history
+const getMachineDetailsWithMaintenance = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Fetch machine details
+    const machine = await Machine.findById(id)
+      .populate("productionLine")
+      .populate({
+        path: "maintenanceRequests",
+        populate: [
+          { path: "createdBy", select: "name role" },
+          { path: "assignedTo", select: "name role" },
+        ],
+      });
+
+    if (!machine) {
+      return res.status(404).json({ message: "Machine not found" });
+    }
+
+    // Calculate maintenance statistics
+    const stats = await MaintenanceRequest.aggregate([
+      { $match: { machine: machine._id } },
+      {
+        $group: {
+          _id: null,
+          totalDowntime: { $sum: "$machineDowntime" },
+          averageRepairTime: { $avg: "$machineDowntime" },
+          totalRequests: { $sum: 1 },
+          totalCost: { $sum: { $sum: "$sparePartsUsed.price" } },
+        },
+      },
+    ]);
+
+    res.status(200).json({
+      machine,
+      stats: stats[0] || {
+        totalDowntime: 0,
+        averageRepairTime: 0,
+        totalRequests: 0,
+        totalCost: 0,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// Fetch maintenance history for a specific machine
+const getMaintenanceHistory = async (req, res) => {
+  try {
+    const { machineId } = req.params;
+
+    const maintenanceHistory = await MaintenanceRequest.find({
+      machine: machineId,
+    })
+      .populate("createdBy", "name role")
+      .populate("assignedTo", "name role")
+      .sort({ createdAt: -1 });
+
+    res.status(200).json(maintenanceHistory);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
 module.exports = {
   createMachine,
   getMachines,
   getMachineById,
   updateMachine,
   deleteMachine,
+  getMachineDetailsWithMaintenance,
+  getMaintenanceHistory,
 };

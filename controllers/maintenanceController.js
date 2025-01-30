@@ -8,6 +8,7 @@ const { default: mongoose } = require("mongoose");
 const { generateRequestID } = require("../utils/generateRequestID");
 const Department = require("../models/Department"); // Import the Department model
 const Employee = require("../models/Employee"); // Import the Employee model// Create a new maintenance request
+
 exports.createMaintenanceRequest = async (req, res) => {
   try {
     const {
@@ -21,27 +22,23 @@ exports.createMaintenanceRequest = async (req, res) => {
     } = req.body;
 
     const attachments = req.files ? req.files.map((file) => file.path) : [];
-    console.log({ attachments });
 
-    // Verify that the machine exists
-    if (!mongoose.Types.ObjectId.isValid(machineId)) {
-      return res.status(400).json({ message: "Invalid machine ID" });
-    }
-
+    // Verify that the machine and production line exist
     const machine = await Machine.findById(machineId);
     if (!machine) {
       return res.status(404).json({ message: "Machine not found" });
-    }
-
-    // Verify that the production line exists
-    if (!mongoose.Types.ObjectId.isValid(productionLine)) {
-      return res.status(400).json({ message: "Invalid production line ID" });
     }
 
     const productionLineExists = await ProductionLine.findById(productionLine);
     if (!productionLineExists) {
       return res.status(404).json({ message: "Production line not found" });
     }
+
+    // Initialize downtime tracking
+    const now = new Date();
+    const productionLineDownStart =
+      productionLineStatus === "Down" ? now : null;
+    const machineDownStart = machineStatus === "Down" ? now : null;
 
     const newRequest = new MaintenanceRequest({
       requestID: generateRequestID(),
@@ -53,6 +50,8 @@ exports.createMaintenanceRequest = async (req, res) => {
       issueDescription,
       attachments,
       createdBy,
+      productionLineDownStart,
+      machineDownStart,
     });
 
     await newRequest.save();
@@ -115,14 +114,39 @@ exports.assignRequest = async (req, res) => {
 // Update request status (e.g., "In Progress" or "Scheduled")
 exports.updateRequestStatus = async (req, res) => {
   try {
-    const { requestId, status } = req.body;
+    const { requestId, status, productionLineStatus, machineStatus } = req.body;
     const request = await MaintenanceRequest.findById(requestId);
 
     if (!request) {
       return res.status(404).json({ message: "Request not found" });
     }
 
+    // Update production line downtime
+    if (
+      productionLineStatus === "Normal" &&
+      request.productionLineStatus === "Down"
+    ) {
+      request.productionLineDownEnd = new Date();
+    } else if (
+      productionLineStatus === "Down" &&
+      request.productionLineStatus === "Normal"
+    ) {
+      request.productionLineDownStart = new Date();
+    }
+
+    // Update machine downtime
+    if (machineStatus === "Normal" && request.machineStatus === "Down") {
+      request.machineDownEnd = new Date();
+    } else if (machineStatus === "Down" && request.machineStatus === "Normal") {
+      request.machineDownStart = new Date();
+    }
+
+    // Update statuses
     request.requestStatus = status;
+    if (productionLineStatus)
+      request.productionLineStatus = productionLineStatus;
+    if (machineStatus) request.machineStatus = machineStatus;
+
     await request.save();
 
     res.status(200).json(request);
@@ -132,9 +156,11 @@ exports.updateRequestStatus = async (req, res) => {
 };
 // stephan_system
 // Add spare parts and close the request
+// Add spare parts and close the request
 exports.addSpareParts = async (req, res) => {
   try {
-    const { requestId, spareParts } = req.body;
+    const { requestId, spareParts, attachments, solution, recommendations } =
+      req.body;
 
     const request = await MaintenanceRequest.findById(requestId);
 
@@ -142,13 +168,61 @@ exports.addSpareParts = async (req, res) => {
       return res.status(404).json({ message: "Request not found" });
     }
 
+    // Calculate downtime
+    const { calculateDowntime } = require("../utils/downtimeCalculator");
+    const productionLineDowntime = calculateDowntime(
+      request.productionLineDownStart,
+      request.productionLineDownEnd
+    );
+    const machineDowntime = calculateDowntime(
+      request.machineDownStart,
+      request.machineDownEnd
+    );
+
+    // Update downtime in the request
+    request.productionLineDowntime = productionLineDowntime;
+    request.machineDowntime = machineDowntime;
+
+    // Add new fields to the request
     request.sparePartsUsed = spareParts;
+    request.attachments = attachments || []; // Ensure it's an array
+    request.solution = solution;
+    request.recommendations = recommendations;
     request.requestStatus = "Closed"; // Update status to "Closed"
+
+    // Set end timestamps if they are null
+    if (!request.productionLineDownEnd) {
+      request.productionLineDownEnd = new Date();
+    }
+    if (!request.machineDownEnd) {
+      request.machineDownEnd = new Date();
+    }
+
     await request.save();
+    const totalCost = spareParts.reduce(
+      (sum, part) => sum + part.price * part.quantity,
+      0
+    );
+    await Machine.findByIdAndUpdate(
+      request.machine,
+      { $inc: { maintenanceCost: totalCost } },
+      { new: true }
+    );
+    // Format attachments for email
+    const attachmentsText =
+      attachments && attachments.length > 0
+        ? attachments.join("\n      - ") // Convert array to bullet points
+        : "No attachments provided";
 
     // Send email to the maintenance supervisor
     const emailText = `Maintenance Request Closed:
       - Spare Parts Used: ${JSON.stringify(spareParts)}
+      - Production Line Downtime: ${productionLineDowntime} minutes
+      - Machine Downtime: ${machineDowntime} minutes
+      - Solution: ${solution}
+      - Recommendations: ${recommendations}
+      - Attachments:
+      - ${attachmentsText}
       - Link: http://mydomain/maintenance-request/${request._id}`;
 
     sendEmail(
@@ -166,7 +240,9 @@ exports.addSpareParts = async (req, res) => {
 // Fetch all requests for the maintenance supervisor
 exports.getRequestsForSupervisor = async (req, res) => {
   try {
-    const requests = await MaintenanceRequest.find({});
+    const requests = await MaintenanceRequest.find({})
+      .populate("createdBy")
+      .populate("machine");
     res.status(200).json(requests);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -174,6 +250,8 @@ exports.getRequestsForSupervisor = async (req, res) => {
 };
 
 // Fetch a single request by ID
+const { calculateDowntime } = require("../utils/downtimeCalculator");
+
 exports.getRequestById = async (req, res) => {
   try {
     const request = await MaintenanceRequest.findById(req.params.id)
@@ -186,16 +264,28 @@ exports.getRequestById = async (req, res) => {
       return res.status(404).json({ message: "Request not found" });
     }
 
-    res.status(200).json(request);
+    // Calculate downtime
+    const productionLineDowntime = calculateDowntime(
+      request.productionLineDownStart,
+      request.productionLineDownEnd
+    );
+    const machineDowntime = calculateDowntime(
+      request.machineDownStart,
+      request.machineDownEnd
+    );
+
+    // Add downtime to the response
+    const response = request.toObject();
+    response.productionLineDowntime = productionLineDowntime;
+    response.machineDowntime = machineDowntime;
+
+    res.status(200).json(response);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
-
 // Delete a maintenance request
 exports.deleteRequest = async (req, res) => {
-  console.log(req.params);
-
   try {
     const { id } = req.params;
 
@@ -252,6 +342,68 @@ exports.getStaff = async (req, res) => {
 
     // Return the list of employees in the department
     res.status(200).json(department.employees);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+exports.getMaintenanceSummary = async (req, res) => {
+  try {
+    const summary = await MaintenanceRequest.aggregate([
+      {
+        $group: {
+          _id: "$machine",
+          totalDowntime: { $sum: "$machineDowntime" },
+          openRequests: {
+            $sum: { $cond: [{ $eq: ["$requestStatus", "Open"] }, 1, 0] },
+          },
+          totalCost: { $sum: { $sum: "$sparePartsUsed.price" } },
+          averageResolutionTime: { $avg: "$machineDowntime" },
+        },
+      },
+      {
+        $lookup: {
+          from: "machines",
+          localField: "_id",
+          foreignField: "_id",
+          as: "machineDetails",
+        },
+      },
+      { $unwind: "$machineDetails" },
+      {
+        $project: {
+          machineName: "$machineDetails.name",
+          machineId: "$machineDetails.machineId",
+          totalDowntime: 1,
+          openRequests: 1,
+          totalCost: 1,
+          averageResolutionTime: 1,
+        },
+      },
+    ]);
+
+    res.status(200).json(summary);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// Fetch maintenance details by ID
+exports.getMaintenanceDetails = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const maintenanceDetails = await MaintenanceRequest.findById(id)
+      .populate("productionLine")
+      .populate("machine")
+      .populate("createdBy", "name role")
+      .populate("assignedTo", "name role");
+
+    if (!maintenanceDetails) {
+      return res.status(404).json({ message: "Maintenance request not found" });
+    }
+
+    res.status(200).json(maintenanceDetails);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

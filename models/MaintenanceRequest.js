@@ -73,6 +73,25 @@ const maintenanceRequestSchema = mongoose.Schema(
       type: Date,
       required: false,
     },
+    productionLineDownStart: {
+      type: Date,
+      default: null,
+    },
+    productionLineDownEnd: {
+      type: Date,
+      default: null,
+    },
+    machineDownStart: {
+      type: Date,
+      default: null,
+    },
+    machineDownEnd: {
+      type: Date,
+      default: null,
+    },
+    scheduledDate: Date,
+    solution: String,
+    recommendations: String,
   },
   {
     timestamps: true,

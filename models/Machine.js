@@ -16,7 +16,7 @@ const machineSchema = mongoose.Schema(
       type: String,
       required: false,
     },
-    productionId: {
+    productionLine: {
       type: String,
       ref: "ProductionLine", // Reference to the ProductionLine model
       required: true,
@@ -26,6 +26,17 @@ const machineSchema = mongoose.Schema(
       enum: ["active", "inactive", "under_maintenance"],
       default: "active",
     },
+    maintenanceCost: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    maintenanceRequests: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "MaintenanceRequest", // Reference to the MaintenanceRequest model
+      },
+    ],
   },
   {
     timestamps: true,

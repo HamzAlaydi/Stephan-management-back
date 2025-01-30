@@ -6,6 +6,8 @@ const {
   getMachineById,
   updateMachine,
   deleteMachine,
+  getMachineDetailsWithMaintenance,
+  getMaintenanceHistory,
 } = require("../controllers/machineController");
 const { protect, admin } = require("../middleware/authMiddleware");
 
@@ -17,5 +19,6 @@ router.get("/", protect, getMachines); // Get all machines
 router.get("/:id", protect, getMachineById); // Get a single machine by ID
 router.patch("/:id", protect, updateMachine); // Update a machine
 router.delete("/:id", protect, deleteMachine); // Delete a machine
-
+router.get("/:id/details", getMachineDetailsWithMaintenance);
+router.get("/:machineId/maintenance-history", getMaintenanceHistory);
 module.exports = router;

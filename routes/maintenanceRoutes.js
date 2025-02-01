@@ -7,7 +7,7 @@ const router = express.Router();
 
 router.post(
   "/",
-  upload.single("attachment"),
+  upload.array("attachments", 5),
   maintenanceController.createMaintenanceRequest
 );
 router.get("/summary", maintenanceController.getMaintenanceSummary);

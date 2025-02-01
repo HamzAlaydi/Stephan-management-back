@@ -168,8 +168,7 @@ exports.updateRequestStatus = async (req, res) => {
 // Add spare parts and close the request
 exports.addSpareParts = async (req, res) => {
   try {
-    const { requestId, spareParts, attachments, solution, recommendations } =
-      req.body;
+    const { requestId, spareParts, solution, recommendations } = req.body;
 
     const request = await MaintenanceRequest.findById(requestId);
 
@@ -194,7 +193,6 @@ exports.addSpareParts = async (req, res) => {
 
     // Add new fields to the request
     request.sparePartsUsed = spareParts;
-    request.attachments = attachments || []; // Ensure it's an array
     request.solution = solution;
     request.recommendations = recommendations;
     request.requestStatus = "Closed"; // Update status to "Closed"
@@ -208,6 +206,7 @@ exports.addSpareParts = async (req, res) => {
     }
 
     await request.save();
+
     // Check other active requests for production line status
     const productionLineId = request.productionLine;
     const activeProductionLineRequests = await MaintenanceRequest.find({

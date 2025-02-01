@@ -89,6 +89,7 @@ const maintenanceRequestSchema = mongoose.Schema(
       type: Date,
       default: null,
     },
+    attachments: [String],
     scheduledDate: Date,
     solution: String,
     recommendations: String,

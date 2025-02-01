@@ -158,11 +158,19 @@ const updateEmployee = async (req, res) => {
 
     // Handle photo upload
     if (req.file) {
-      const photoPath = path.join(__dirname, "../uploads", req.file.filename);
+      const photoPath = path.join(
+        __dirname,
+        "../api/uploads",
+        req.file.filename
+      );
 
       // Delete the old photo if it exists
       if (employee.photo) {
-        const oldPhotoPath = path.join(__dirname, "../uploads", employee.photo);
+        const oldPhotoPath = path.join(
+          __dirname,
+          "../api/uploads",
+          employee.photo
+        );
         if (fs.existsSync(oldPhotoPath)) {
           fs.unlinkSync(oldPhotoPath);
         }

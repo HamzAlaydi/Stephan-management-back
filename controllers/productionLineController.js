@@ -1,4 +1,5 @@
 // controllers/productionLineController.js
+const Machine = require("../models/Machine");
 const ProductionLine = require("../models/ProductionLine");
 
 // @desc    Create a new production line
@@ -54,6 +55,8 @@ const getProductionLineById = async (req, res) => {
 };
 // @desc    Update a production line
 const updateProductionLine = async (req, res) => {
+  console.log(req.body);
+
   try {
     const { name, description, status, machines, productionId } = req.body;
     const productionLine = await ProductionLine.findById(req.params.id);
@@ -85,7 +88,9 @@ const deleteProductionLine = async (req, res) => {
     }
 
     // Remove the production line reference from all associated machines
-    await Machine.updateMany(
+    console.log(productionLine._id);
+
+    const m = await Machine.updateMany(
       { productionLine: productionLine._id },
       { $unset: { productionLine: "" } }
     );

@@ -23,8 +23,8 @@ const machineSchema = mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ["active", "inactive", "under_maintenance"],
-      default: "active",
+      enum: ["normal", "upNormal", "down"], // New status values
+      default: "normal",
     },
     maintenanceCost: {
       type: Number,
@@ -38,6 +38,7 @@ const machineSchema = mongoose.Schema(
       },
     ],
   },
+
   {
     timestamps: true,
   }

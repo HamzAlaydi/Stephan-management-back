@@ -15,8 +15,8 @@ const router = express.Router();
 
 // CRUD Routes for Machines
 router.post("/", protect, createMachine); // Create a new machine (protected, admin-only)
-router.get("/", protect, getMachines); // Get all machines
 router.get("/:id", protect, getMachineById); // Get a single machine by ID
+router.get("/", protect, getMachines); // Get all machines
 router.patch("/:id", protect, updateMachine); // Update a machine
 router.delete("/:id", protect, deleteMachine); // Delete a machine
 router.get("/:id/details", getMachineDetailsWithMaintenance);

@@ -28,11 +28,11 @@ const maintenanceRequestSchema = mongoose.Schema(
       enum: ["Pending", "Assigned", "In Progress", "Completed"],
       default: "Pending",
     },
-    symptoms: {
+    failures: {
       type: String,
       required: true,
     },
-    issueDescription: {
+    breakDownCauses: {
       type: String,
       required: true,
     },

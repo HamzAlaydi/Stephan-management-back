@@ -16,7 +16,6 @@ router.post("/status", maintenanceController.updateRequestStatus);
 router.post("/spare-parts", maintenanceController.addSpareParts);
 router.get("/staff", maintenanceController.getStaff);
 router.get("/", maintenanceController.getRequestsForSupervisor); // Fetch all requests
-router.get("details/:id", maintenanceController.getMaintenanceDetails);
 router.get("/:id", maintenanceController.getRequestById); // Fetch a single request by ID
 router.delete("/:id", maintenanceController.deleteRequest); // Fetch a single request by ID
 

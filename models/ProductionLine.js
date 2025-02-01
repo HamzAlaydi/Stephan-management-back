@@ -19,8 +19,8 @@ const productionLineSchema = mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ["active", "inactive"],
-      default: "active",
+      enum: ["running", "down"],
+      default: "running",
     },
     machines: [
       {

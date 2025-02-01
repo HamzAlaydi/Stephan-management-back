@@ -55,17 +55,32 @@ const createMachine = async (req, res) => {
 };
 
 // @desc    Get all machines
+
 const getMachines = async (req, res) => {
   try {
-    const machines = await Machine.find({}).populate("productionLine");
-    res.status(200).json(machines);
+    const { productionLine } = req.query; // Get the productionLine from query parameters
+
+    let machines;
+
+    if (productionLine) {
+      // If productionLine is provided, filter machines by productionLine
+      machines = await Machine.find({ productionLine });
+    } else {
+      // If no productionLine is provided, return all machines
+      machines = await Machine.find();
+    }
+
+    res.json(machines);
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    console.error(error);
+    res.status(500).json({ message: error.message });
   }
 };
 
 // @desc    Get a single machine by ID
 const getMachineById = async (req, res) => {
+  console.log("Called");
+  console.log(req.params.id);
   try {
     const machine = await Machine.findById(req.params.id).populate(
       "productionLine"

@@ -16,8 +16,8 @@ exports.createMaintenanceRequest = async (req, res) => {
       machineId,
       productionLineStatus,
       machineStatus,
-      symptoms,
-      issueDescription,
+      failures,
+      breakDownCauses,
       createdBy,
     } = req.body;
 
@@ -37,8 +37,8 @@ exports.createMaintenanceRequest = async (req, res) => {
     // Initialize downtime tracking
     const now = new Date();
     const productionLineDownStart =
-      productionLineStatus === "Down" ? now : null;
-    const machineDownStart = machineStatus === "Down" ? now : null;
+      productionLineStatus === "down" ? now : null;
+    const machineDownStart = machineStatus === "down" ? now : null;
 
     const newRequest = new MaintenanceRequest({
       requestID: generateRequestID(),
@@ -46,8 +46,8 @@ exports.createMaintenanceRequest = async (req, res) => {
       machine: machineId,
       productionLineStatus,
       machineStatus,
-      symptoms,
-      issueDescription,
+      failures,
+      breakDownCauses,
       attachments,
       createdBy,
       productionLineDownStart,
@@ -55,14 +55,24 @@ exports.createMaintenanceRequest = async (req, res) => {
     });
 
     await newRequest.save();
-
+    await ProductionLine.findByIdAndUpdate(productionLine, {
+      status: productionLineStatus === "down" ? "down" : "running", // Updated status
+    });
+    await Machine.findByIdAndUpdate(machineId, {
+      status:
+        machineStatus === "down"
+          ? "down"
+          : machineStatus === "upNormal"
+          ? "upNormal"
+          : "normal",
+    });
     // Send email to maintenance supervisor
     const emailText = `New Maintenance Request:
       - Machine: ${machine.name}
       - Production Line Status: ${productionLineStatus}
       - Machine Status: ${machineStatus}
-      - Symptoms: ${symptoms}
-      - Issue Description: ${issueDescription}
+      - Failures: ${failures}
+      - Issue Description: ${breakDownCauses}
       - Link: http://mydomain/maintenance-request/${newRequest._id}`;
 
     await sendEmail(
@@ -95,8 +105,8 @@ exports.assignRequest = async (req, res) => {
 
     // Send email to the assigned technician
     const emailText = `You have been assigned a maintenance request:
-      - Symptoms: ${request.symptoms}
-      - Issue Description: ${request.issueDescription}
+      - Failures: ${request.failures}
+      - Issue Description: ${request.breakDownCauses}
       - Link: http://mydomain/maintenance-request/${request._id}`;
 
     sendEmail(
@@ -123,21 +133,20 @@ exports.updateRequestStatus = async (req, res) => {
 
     // Update production line downtime
     if (
-      productionLineStatus === "Normal" &&
-      request.productionLineStatus === "Down"
+      productionLineStatus === "running" &&
+      request.productionLineStatus === "down"
     ) {
       request.productionLineDownEnd = new Date();
     } else if (
-      productionLineStatus === "Down" &&
-      request.productionLineStatus === "Normal"
+      productionLineStatus === "down" &&
+      request.productionLineStatus === "running"
     ) {
       request.productionLineDownStart = new Date();
     }
 
-    // Update machine downtime
-    if (machineStatus === "Normal" && request.machineStatus === "Down") {
+    if (machineStatus === "normal" && request.machineStatus === "down") {
       request.machineDownEnd = new Date();
-    } else if (machineStatus === "Down" && request.machineStatus === "Normal") {
+    } else if (machineStatus === "down" && request.machineStatus === "normal") {
       request.machineDownStart = new Date();
     }
 
@@ -199,6 +208,36 @@ exports.addSpareParts = async (req, res) => {
     }
 
     await request.save();
+    // Check other active requests for production line status
+    const productionLineId = request.productionLine;
+    const activeProductionLineRequests = await MaintenanceRequest.find({
+      productionLine: productionLineId,
+      requestStatus: { $ne: "Closed" },
+      _id: { $ne: request._id }, // Exclude current closed request
+    });
+
+    const shouldProdLineBeDown = activeProductionLineRequests.some(
+      (req) => req.productionLineStatus === "down" // Lowercase comparison
+    );
+
+    await ProductionLine.findByIdAndUpdate(productionLineId, {
+      status: shouldProdLineBeDown ? "down" : "running", // Correct status value
+    });
+
+    // Enhanced machine status calculation
+    const machineStatuses = activeMachineRequests.map(
+      (req) => req.machineStatus
+    );
+    const newMachineStatus = machineStatuses.includes("down")
+      ? "down"
+      : machineStatuses.includes("upNormal")
+      ? "upNormal"
+      : "normal";
+
+    await Machine.findByIdAndUpdate(machineId, {
+      status: newMachineStatus,
+    });
+
     const totalCost = spareParts.reduce(
       (sum, part) => sum + part.price * part.quantity,
       0
@@ -217,8 +256,8 @@ exports.addSpareParts = async (req, res) => {
     // Send email to the maintenance supervisor
     const emailText = `Maintenance Request Closed:
       - Spare Parts Used: ${JSON.stringify(spareParts)}
-      - Production Line Downtime: ${productionLineDowntime} minutes
       - Machine Downtime: ${machineDowntime} minutes
+      - Production Line Downtime: ${productionLineDowntime} minutes
       - Solution: ${solution}
       - Recommendations: ${recommendations}
       - Attachments:
@@ -240,10 +279,33 @@ exports.addSpareParts = async (req, res) => {
 // Fetch all requests for the maintenance supervisor
 exports.getRequestsForSupervisor = async (req, res) => {
   try {
-    const requests = await MaintenanceRequest.find({})
-      .populate("createdBy")
-      .populate("machine");
-    res.status(200).json(requests);
+    const { page = 1, limit = 10, status, assignedTo } = req.query;
+    const skip = (page - 1) * limit;
+
+    // Build query object
+    const query = {};
+    if (status) query.requestStatus = status;
+    if (assignedTo) query.assignedTo = assignedTo;
+
+    const [requests, total] = await Promise.all([
+      MaintenanceRequest.find(query)
+        .populate("createdBy")
+        .populate("machine")
+        .skip(skip)
+        .limit(parseInt(limit))
+        .sort({ createdAt: -1 }),
+      MaintenanceRequest.countDocuments(query),
+    ]);
+
+    res.status(200).json({
+      requests,
+      pagination: {
+        totalItems: total,
+        totalPages: Math.ceil(total / limit),
+        currentPage: parseInt(page),
+        itemsPerPage: parseInt(limit),
+      },
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -351,38 +413,59 @@ exports.getMaintenanceSummary = async (req, res) => {
   try {
     const summary = await MaintenanceRequest.aggregate([
       {
-        $group: {
-          _id: "$machine",
-          totalDowntime: { $sum: "$machineDowntime" },
-          openRequests: {
-            $sum: { $cond: [{ $eq: ["$requestStatus", "Open"] }, 1, 0] },
-          },
-          totalCost: { $sum: { $sum: "$sparePartsUsed.price" } },
-          averageResolutionTime: { $avg: "$machineDowntime" },
-        },
-      },
-      {
         $lookup: {
           from: "machines",
-          localField: "_id",
+          localField: "machine",
           foreignField: "_id",
-          as: "machineDetails",
+          as: "machine",
         },
       },
-      { $unwind: "$machineDetails" },
+      { $unwind: "$machine" },
+      {
+        $group: {
+          _id: "$machine._id",
+          machineName: { $first: "$machine.name" },
+          totalDowntime: { $sum: "$downtime.machine" },
+          openRequests: {
+            $sum: { $cond: [{ $ne: ["$requestStatus", "closed"] }, 1, 0] },
+          },
+          totalCost: {
+            $sum: {
+              $reduce: {
+                input: "$sparePartsUsed",
+                initialValue: 0,
+                in: {
+                  $add: [
+                    "$$value",
+                    { $multiply: ["$$this.price", "$$this.quantity"] },
+                  ],
+                },
+              },
+            },
+          },
+          avgResolutionTime: {
+            $avg: {
+              $subtract: ["$timeline.closed", "$timeline.created"],
+            },
+          },
+        },
+      },
       {
         $project: {
-          machineName: "$machineDetails.name",
-          machineId: "$machineDetails.machineId",
+          _id: 0,
+          machineId: "$_id",
+          machineName: 1,
           totalDowntime: 1,
           openRequests: 1,
           totalCost: 1,
-          averageResolutionTime: 1,
+          avgResolutionHours: {
+            $divide: ["$avgResolutionTime", 1000 * 60 * 60],
+          },
         },
       },
     ]);
 
-    res.status(200).json(summary);
+    res.json(summary);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

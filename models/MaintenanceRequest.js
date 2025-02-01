@@ -19,19 +19,19 @@ const maintenanceRequestSchema = mongoose.Schema(
     },
     productionLineStatus: {
       type: String,
-      enum: ["Down", "Normal"],
+      enum: ["down", "running"],
       required: true,
     },
     machineStatus: {
       type: String,
-      enum: ["Down", "Normal"],
+      enum: ["down", "normal", "upNormal"],
       required: true,
     },
-    symptoms: {
+    failures: {
       type: String,
       required: true,
     },
-    issueDescription: {
+    breakDownCauses: {
       type: String,
       required: true,
     },

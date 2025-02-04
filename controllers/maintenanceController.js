@@ -8,6 +8,7 @@ const { default: mongoose } = require("mongoose");
 const { generateRequestID } = require("../utils/generateRequestID");
 const Department = require("../models/Department"); // Import the Department model
 const Employee = require("../models/Employee"); // Import the Employee model// Create a new maintenance request
+const { calculateDowntime } = require("../utils/downtimeCalculator");
 
 exports.createMaintenanceRequest = async (req, res) => {
   try {
@@ -21,7 +22,7 @@ exports.createMaintenanceRequest = async (req, res) => {
       createdBy,
     } = req.body;
 
-    const attachments = req.files ? req.files.map((file) => file.path) : [];
+    const attachments = req.files ? req.files.map((file) => file.location) : [];
 
     // Verify that the machine and production line exist
     const machine = await Machine.findById(machineId);
@@ -58,6 +59,7 @@ exports.createMaintenanceRequest = async (req, res) => {
     await ProductionLine.findByIdAndUpdate(productionLine, {
       status: productionLineStatus === "down" ? "down" : "running", // Updated status
     });
+    const requestCreator = await Employee.findById(createdBy);
     await Machine.findByIdAndUpdate(machineId, {
       status:
         machineStatus === "down"
@@ -67,13 +69,16 @@ exports.createMaintenanceRequest = async (req, res) => {
           : "normal",
     });
     // Send email to maintenance supervisor
-    const emailText = `New Maintenance Request:
-      - Machine: ${machine.name}
-      - Production Line Status: ${productionLineStatus}
+
+    const emailText = `New Maintenance Request NO Replay:
+    - requestID ${newRequest.requestID}
+    - Production Line Status: ${productionLineStatus}
+    - Machine: ${machine.name}
+    - Request Created By: ${requestCreator.name}
       - Machine Status: ${machineStatus}
       - Failures: ${failures}
       - Issue Description: ${breakDownCauses}
-      - Link: http://mydomain/maintenance-request/${newRequest._id}`;
+      - Link: http://mydomain/maintenance-request/${newRequest.requestID}`;
 
     await sendEmail(
       process.env.MAINTENANCE_SUPERVISOR_EMAIL,
@@ -90,26 +95,34 @@ exports.createMaintenanceRequest = async (req, res) => {
 // Assign a technician and set priority
 exports.assignRequest = async (req, res) => {
   try {
-    const { requestId, assignedTo, priority } = req.body;
-    const request = await MaintenanceRequest.findById(requestId);
+    const { requestId, assignedTo, priority, assignedBy } = req.body;
 
+    const request = await MaintenanceRequest.findById(requestId);
     if (!request) {
       return res.status(404).json({ message: "Request not found" });
     }
 
+    // Update the request with assignedTo, priority, and assignedBy
     request.assignedTo = assignedTo;
     request.priority = priority;
-    request.requestStatus = "Assigned"; // Update status to "Assigned"
+    request.assignedBy = assignedBy; // Add assignedBy
+    request.requestStatus = "Assigned";
 
     await request.save();
 
     // Send email to the assigned technician
     const emailText = `You have been assigned a maintenance request:
+     - Request ID: ${request.requestID}
+     - Production Line Status: ${request.productionLineStatus}
+      - Machine: ${request.machine.name}
+      - Machine Status: ${request.machineStatus}
+      - Priority: ${request.priority}
+      - Assigned By: ${request.assignedBy}
       - Failures: ${request.failures}
-      - Issue Description: ${request.breakDownCauses}
+      - Break Down Causes: ${request.breakDownCauses}
       - Link: http://mydomain/maintenance-request/${request._id}`;
 
-    sendEmail(
+    await sendEmail(
       "technician@domain.com",
       "Assigned Maintenance Request",
       emailText
@@ -170,7 +183,9 @@ exports.addSpareParts = async (req, res) => {
   try {
     const { requestId, spareParts, solution, recommendations } = req.body;
 
-    const request = await MaintenanceRequest.findById(requestId);
+    const request = await MaintenanceRequest.findById(requestId)
+      .populate("productionLine", "name")
+      .populate("machine", "name");
 
     if (!request) {
       return res.status(404).json({ message: "Request not found" });
@@ -207,8 +222,28 @@ exports.addSpareParts = async (req, res) => {
 
     await request.save();
 
+    // Calculate total cost of spare parts
+    let totalCost = 0;
+    if (Array.isArray(spareParts) && spareParts.length > 0) {
+      totalCost = spareParts.reduce(
+        (sum, part) => sum + (part.price || 0) * (part.quantity || 0),
+        0
+      );
+    }
+
+    // Update machine's maintenance cost
+    const updatedMachine = await Machine.findByIdAndUpdate(
+      request.machine._id, // Use _id instead of request.machine
+      { $inc: { maintenanceCost: totalCost } },
+      { new: true } // Return updated document
+    );
+
+    if (!updatedMachine) {
+      return res.status(404).json({ message: "Machine not found" });
+    }
+
     // Check other active requests for production line status
-    const productionLineId = request.productionLine;
+    const productionLineId = request.productionLine._id; // Use _id
     const activeProductionLineRequests = await MaintenanceRequest.find({
       productionLine: productionLineId,
       requestStatus: { $ne: "Closed" },
@@ -216,14 +251,19 @@ exports.addSpareParts = async (req, res) => {
     });
 
     const shouldProdLineBeDown = activeProductionLineRequests.some(
-      (req) => req.productionLineStatus === "down" // Lowercase comparison
+      (req) => req.productionLineStatus === "down"
     );
 
     await ProductionLine.findByIdAndUpdate(productionLineId, {
-      status: shouldProdLineBeDown ? "down" : "running", // Correct status value
+      status: shouldProdLineBeDown ? "down" : "running",
     });
 
     // Enhanced machine status calculation
+    const activeMachineRequests = await MaintenanceRequest.find({
+      machine: request.machine._id, // Use _id
+      requestStatus: { $ne: "Closed" },
+    });
+
     const machineStatuses = activeMachineRequests.map(
       (req) => req.machineStatus
     );
@@ -233,27 +273,21 @@ exports.addSpareParts = async (req, res) => {
       ? "upNormal"
       : "normal";
 
-    await Machine.findByIdAndUpdate(machineId, {
+    await Machine.findByIdAndUpdate(request.machine._id, {
       status: newMachineStatus,
     });
 
-    const totalCost = spareParts.reduce(
-      (sum, part) => sum + part.price * part.quantity,
-      0
-    );
-    await Machine.findByIdAndUpdate(
-      request.machine,
-      { $inc: { maintenanceCost: totalCost } },
-      { new: true }
-    );
     // Format attachments for email
     const attachmentsText =
-      attachments && attachments.length > 0
-        ? attachments.join("\n      - ") // Convert array to bullet points
+      request.attachments && request.attachments.length > 0
+        ? request.attachments.join("\n      - ")
         : "No attachments provided";
 
     // Send email to the maintenance supervisor
     const emailText = `Maintenance Request Closed:
+      - Request ID: ${request.requestID}
+      - Production Line: ${request.productionLine.name || "N/A"}
+      - Machine Name: ${request.machine.name || "N/A"}
       - Spare Parts Used: ${JSON.stringify(spareParts)}
       - Machine Downtime: ${machineDowntime} minutes
       - Production Line Downtime: ${productionLineDowntime} minutes
@@ -261,9 +295,9 @@ exports.addSpareParts = async (req, res) => {
       - Recommendations: ${recommendations}
       - Attachments:
       - ${attachmentsText}
-      - Link: http://mydomain/maintenance-request/${request._id}`;
+      - Link: http://mydomain/maintenance-request/${request.requestID}`;
 
-    sendEmail(
+    await sendEmail(
       process.env.MAINTENANCE_SUPERVISOR_EMAIL,
       "Maintenance Request Closed",
       emailText
@@ -271,6 +305,7 @@ exports.addSpareParts = async (req, res) => {
 
     res.status(200).json(request);
   } catch (error) {
+    console.error("Error in addSpareParts:", error.message);
     res.status(500).json({ message: error.message });
   }
 };
@@ -278,18 +313,32 @@ exports.addSpareParts = async (req, res) => {
 // Fetch all requests for the maintenance supervisor
 exports.getRequestsForSupervisor = async (req, res) => {
   try {
-    const { page = 1, limit = 10, status, assignedTo } = req.query;
+    const { page = 1, limit = 10, status } = req.query;
     const skip = (page - 1) * limit;
+    if (!req.query.user || !req.query.user.department) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    const loggedInUserId = req.query.user;
+    // Get the logged-in user's ID from the request (assuming it's added by your auth middleware)
 
     // Build query object
     const query = {};
-    if (status) query.requestStatus = status;
-    if (assignedTo) query.assignedTo = assignedTo;
+
+    // Add status filter if provided
+    if (status) {
+      query.requestStatus = status;
+    }
+
+    // If the user is a technician, only fetch requests assigned to them
+    if (req.query.user.department?.name === "maintenance technical") {
+      query.assignedTo = loggedInUserId;
+    }
 
     const [requests, total] = await Promise.all([
       MaintenanceRequest.find(query)
         .populate("createdBy")
         .populate("machine")
+        .populate("assignedBy")
         .skip(skip)
         .limit(parseInt(limit))
         .sort({ createdAt: -1 }),
@@ -310,16 +359,14 @@ exports.getRequestsForSupervisor = async (req, res) => {
   }
 };
 
-// Fetch a single request by ID
-const { calculateDowntime } = require("../utils/downtimeCalculator");
-
 exports.getRequestById = async (req, res) => {
   try {
     const request = await MaintenanceRequest.findById(req.params.id)
       .populate("productionLine")
       .populate("machine")
       .populate("createdBy")
-      .populate("assignedTo");
+      .populate("assignedTo")
+      .populate("assignedBy");
 
     if (!request) {
       return res.status(404).json({ message: "Request not found" });

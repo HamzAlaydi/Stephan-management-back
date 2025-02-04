@@ -20,7 +20,7 @@ const createProductionLine = async (req, res) => {
       productionId,
       name,
       description,
-      status: status || "active",
+      status: status || "running",
     });
 
     res.status(201).json(productionLine);

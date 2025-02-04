@@ -44,4 +44,16 @@ const machineSchema = mongoose.Schema(
   }
 );
 
+// Middleware to capitalize the first letter of each word in the name
+machineSchema.pre("save", function (next) {
+  if (this.isModified("name")) {
+    // Only capitalize if the name field is being modified
+    this.name = this.name
+      .toLowerCase() // Convert to lowercase first to handle mixed-case input
+      .split(" ")
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(" ");
+  }
+  next();
+});
 module.exports = mongoose.model("Machine", machineSchema);

@@ -32,7 +32,7 @@ const createMachine = async (req, res) => {
       name,
       description,
       productionLine: productionLine._id, // Link to production line
-      status: status || "active",
+      status: status || "normal",
     });
 
     // Add machine to production line's machines array
@@ -154,6 +154,7 @@ const getMachineDetailsWithMaintenance = async (req, res) => {
         populate: [
           { path: "createdBy", select: "name role" },
           { path: "assignedTo", select: "name role" },
+          { path: "assignedBy", select: "name role" },
         ],
       });
 
@@ -199,6 +200,8 @@ const getMaintenanceHistory = async (req, res) => {
     })
       .populate("createdBy", "name role")
       .populate("assignedTo", "name role")
+      .populate("assignedBy", "name role")
+
       .sort({ createdAt: -1 });
 
     res.status(200).json(maintenanceHistory);

@@ -41,6 +41,11 @@ const maintenanceRequestSchema = mongoose.Schema(
       ref: "Employee",
       required: true,
     },
+    assignedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Employee",
+      default: null,
+    },
     assignedTo: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Employee",

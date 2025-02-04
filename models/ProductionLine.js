@@ -34,4 +34,15 @@ const productionLineSchema = mongoose.Schema(
   }
 );
 
+productionLineSchema.pre("save", function (next) {
+  if (this.isModified("name")) {
+    this.name = this.name
+      .toLowerCase()
+      .split(" ")
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(" ");
+  }
+  next();
+});
+
 module.exports = mongoose.model("ProductionLine", productionLineSchema);

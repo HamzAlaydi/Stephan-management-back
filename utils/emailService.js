@@ -10,24 +10,24 @@ const transporter = nodemailer.createTransport({
 });
 
 const sendEmail = (to, subject, text) => {
-  // console.log(process.env.MAIL);
-  // console.log(process.env.MAIL_PASSWORD);
-  // console.log(to);
+  console.log(process.env.MAIL);
+  console.log(process.env.MAIL_PASSWORD);
+  console.log(to);
 
-  // const mailOptions = {
-  //   from: process.env.MAIL,
-  //   to,
-  //   subject,
-  //   text,
-  // };
+  const mailOptions = {
+    from: process.env.MAIL,
+    to,
+    subject,
+    text,
+  };
 
-  // transporter.sendMail(mailOptions, (error, info) => {
-  //   if (error) {
-  //     console.log(error);
-  //   } else {
-  //     console.log("Email sent: " + info.response);
-  //   }
-  // });
+  transporter.sendMail(mailOptions, (error, info) => {
+    if (error) {
+      console.log(error);
+    } else {
+      console.log("Email sent: " + info.response);
+    }
+  });
 
   return console.log("send email");
 };

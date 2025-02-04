@@ -23,7 +23,6 @@ exports.createMaintenanceRequest = async (req, res) => {
     } = req.body;
 
     const attachments = req.files ? req.files.map((file) => file.location) : [];
-
     // Verify that the machine and production line exist
     const machine = await Machine.findById(machineId);
     if (!machine) {

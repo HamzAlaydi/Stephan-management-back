@@ -11,7 +11,6 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true })); // Parse URL-encoded form data
 app.use(cors());
-app.use("/api/uploads", express.static(path.join(__dirname, "api/uploads")));
 // API Routes
 app.use("/api", routes);
 

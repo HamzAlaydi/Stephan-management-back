@@ -7,17 +7,19 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
       - name: SSH and Deploy
-        uses: appleboy/ssh-action@main
+        uses: appleboy/ssh-action@v1.1.3  # Use specific version instead of main
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ubuntu
-          key: ${{ secrets.EC2_SSH_KEY }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            cd Stephan-management-back
+            cd /tmp/Stephan-management-back
             git pull origin main
-            npm install
-            pm2 restart app
+            npm ci --production
+            pm2 reload ecosystem.config.js
             sudo systemctl reload nginx

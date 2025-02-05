@@ -23,3 +23,4 @@ jobs:
             npm ci --production
             pm2 reload ecosystem.config.js
             sudo systemctl reload nginx
+            echo "Deployment completed successfully

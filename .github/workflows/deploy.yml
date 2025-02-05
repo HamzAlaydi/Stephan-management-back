@@ -16,6 +16,7 @@ jobs:
           username: ubuntu
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
+            echo "First few characters of EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY:0:10 }}" # Echo the first 10 characters
             cd ./Stephan-management-back
             git pull origin main
             npm install

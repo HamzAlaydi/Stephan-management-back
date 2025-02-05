@@ -17,7 +17,7 @@ router.use("/request", maintenanceRoutes);
 
 // Root Endpoint
 router.get("/", (req, res) => {
-  res.json({ message: "Welcome to the Maintenance Management API!" });
+  res.json({ message: "Hi MAGEEEN!" });
 });
 
 module.exports = router;

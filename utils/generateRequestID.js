@@ -1,4 +1,4 @@
-function generateRequestID() {
+export const generateRequestID = () => {
   const month = new Date().getMonth(); // Get the current month (0 to 11)
   let letter;
 
@@ -17,7 +17,5 @@ function generateRequestID() {
   // Generate 3 random digits (e.g., 123, 001)
   const randomDigits = Math.floor(100 + Math.random() * 900);
 
-  return letter + randomDigits; // Template literals are just syntactic sugar
-}
-
-module.exports = generateRequestID;
+  return `${letter}${randomDigits}`;
+};

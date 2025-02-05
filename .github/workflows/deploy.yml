@@ -16,7 +16,7 @@ jobs:
           username: ubuntu
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
-            cd Stephan-management-back
+            cd ./Stephan-management-back
             git pull origin main
             npm install
             pm2 restart app

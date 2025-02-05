@@ -12,14 +12,14 @@ jobs:
         uses: actions/checkout@v3
 
       - name: SSH and Deploy
-        uses: appleboy/ssh-action@main
+        uses: appleboy/ssh-action@main # Or a specific tag like @v4.0.0
         with:
-          host: ${{ secrets.EC2_HOST }}
+          host: 35.183.45.108
           username: ubuntu
-          key: ${{ secrets.EC2_SSH_KEY }}
+          key: -----BEGIN OPENSSH PRIVATE KEY----- b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAAMwAAAAtz c2gtZWQyNTUxOQAAACApd5RMFlPJ3aLD4mZImVl2jrUjU6FRdg97SwkA91CXZAAA AIjtLRhX7S0YVwAAAAtzc2gtZWQyNTUxOQAAACApd5RMFlPJ3aLD4mZImVl2jrUj U6FRdg97SwkA91CXZAAAAEAwUQIBATAFBgMrZXAEIgQgQr6OLL163yyMKoNuwuSi YCl3lEwWU8ndosPiZkiZWXaOtSNToVF2D3tLCQD3UJdkAAAAAAECAwQF -----END OPENSSH PRIVATE KEY-----
           script: |
-            cd /var/www/html/Stephan-management-back  # **Correct Path on EC2**
+            cd /var/www/html/Stephan-management-back # The correct path on your EC2 instance
             git pull origin main
-            npm install --production # Install only production dependencies
-            pm2 startOrRestart app.js --node-args="--experimental-modules" --name my-app # Use startOrRestart and a name
-            sudo systemctl reload nginx # Only if using Nginx
+            npm install --production
+            pm2 startOrRestart app.js --node-args="--experimental-modules" --name my-app
+            sudo systemctl reload nginx  # Only if using Nginx

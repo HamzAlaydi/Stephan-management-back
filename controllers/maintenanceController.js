@@ -69,20 +69,41 @@ exports.createMaintenanceRequest = async (req, res) => {
     });
     // Send email to maintenance supervisor
 
-    const emailText = `New Maintenance Request NO Replay:
-    - requestID ${newRequest.requestID}
-    - Production Line Status: ${productionLineStatus}
-    - Machine: ${machine.name}
-    - Request Created By: ${requestCreator.name}
-      - Machine Status: ${machineStatus}
-      - Failures: ${failures}
-      - Issue Description: ${breakDownCauses}
-      - Link: http://mydomain/maintenance-request/${newRequest.requestID}`;
+    const emailHtml = `
+    <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: auto; border: 1px solid #ddd; padding: 20px; border-radius: 8px; background-color: #f9f9f9;">
+      <h2 style="color: #007bff; text-align: center;">🔧 New Maintenance Request (No Reply)</h2>
+      
+      <div style="background: #fff; padding: 15px; border-radius: 6px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);">
+        <p><strong>📌 Request ID:</strong> ${newRequest.requestID}</p>
+        <p><strong>📍 Production Line Status:</strong> <span style="color: ${
+          productionLineStatus === "down" ? "red" : "green"
+        };">${productionLineStatus}</span></p>
+        <p><strong>⚙️ Machine Status:</strong> <span style="color: ${
+          machineStatus === "down" ? "red" : "green"
+        };">${machineStatus}</span></p>
+        <p><strong>🛠 Machine:</strong> ${machine.name}</p>
+        <p><strong>👤 Request Created By:</strong> ${requestCreator.name}</p>
+        <p><strong>❌ Failures:</strong> ${failures}</p>
+        <p><strong>🔎 Issue Description:</strong> ${breakDownCauses}</p>
+        
+        <div style="margin-top: 20px; text-align: center;">
+          <a href="http://mydomain/maintenance-request/${newRequest.requestID}" 
+            style="display: inline-block; padding: 10px 20px; background: #007bff; color: #fff; text-decoration: none; font-weight: bold; border-radius: 4px;">
+            🔗 View Request
+          </a>
+        </div>
+      </div>
+      
+      <p style="margin-top: 20px; text-align: center; font-size: 12px; color: #777;">
+        This is an automated message. Please do not reply.
+      </p>
+    </div>
+  `;
 
     await sendEmail(
       process.env.MAINTENANCE_SUPERVISOR_EMAIL,
       "New Maintenance Request",
-      emailText
+      emailHtml
     );
 
     res.status(201).json(newRequest);
@@ -106,25 +127,56 @@ exports.assignRequest = async (req, res) => {
     request.priority = priority;
     request.assignedBy = assignedBy; // Add assignedBy
     request.requestStatus = "Assigned";
-
     await request.save();
+    console.log(req.body);
+
+    // get the email of assignedTo from employee model
+    const assignedToObj = await Employee.findOne({ _id: assignedTo });
+    console.log({ assignedToObj });
+    const assignedToEmail = assignedToObj.email;
+    console.log({ assignedToEmail });
 
     // Send email to the assigned technician
-    const emailText = `You have been assigned a maintenance request:
-     - Request ID: ${request.requestID}
-     - Production Line Status: ${request.productionLineStatus}
-      - Machine: ${request.machine.name}
-      - Machine Status: ${request.machineStatus}
-      - Priority: ${request.priority}
-      - Assigned By: ${request.assignedBy}
-      - Failures: ${request.failures}
-      - Break Down Causes: ${request.breakDownCauses}
-      - Link: http://mydomain/maintenance-request/${request._id}`;
+    const emailHtml = `
+    <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: auto; border: 1px solid #ddd; padding: 20px; border-radius: 8px; background-color: #f9f9f9;">
+      <h2 style="color: #007bff; text-align: center;">🔧 Maintenance Request Assigned</h2>
+      
+      <div style="background: #fff; padding: 15px; border-radius: 6px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);">
+        <p><strong>📌 Request ID:</strong> ${request.requestID}</p>
+        <p><strong>📍 Production Line Status:</strong> <span style="color: ${
+          request.productionLineStatus === "down" ? "red" : "green"
+        };">${request.productionLineStatus}</span></p>
+        <p><strong>⚙️ Machine Status:</strong> <span style="color: ${
+          request.machineStatus === "down" ? "red" : "green"
+        };">${request.machineStatus}</span></p>
+        <p><strong>🔥 Priority:</strong> <span style="color: ${
+          request.priority === "High"
+            ? "red"
+            : request.priority === "Medium"
+            ? "orange"
+            : "green"
+        };">${request.priority}</span></p>
+        <p><strong>❌ Failures:</strong> ${request.failures}</p>
+        <p><strong>🔎 Break Down Causes:</strong> ${request.breakDownCauses}</p>
+  
+        <div style="margin-top: 20px; text-align: center;">
+          <a href="http://mydomain/maintenance-request/${request._id}" 
+            style="display: inline-block; padding: 10px 20px; background: #007bff; color: #fff; text-decoration: none; font-weight: bold; border-radius: 4px;">
+            🔗 View Request
+          </a>
+        </div>
+      </div>
+  
+      <p style="margin-top: 20px; text-align: center; font-size: 12px; color: #777;">
+        This is an automated message. Please do not reply.
+      </p>
+    </div>
+  `;
 
     await sendEmail(
-      "technician@domain.com",
+      "hamza.alaydi.99@outlook.sa",
       "Assigned Maintenance Request",
-      emailText
+      emailHtml
     );
 
     res.status(200).json(request);
@@ -283,23 +335,55 @@ exports.addSpareParts = async (req, res) => {
         : "No attachments provided";
 
     // Send email to the maintenance supervisor
-    const emailText = `Maintenance Request Closed:
-      - Request ID: ${request.requestID}
-      - Production Line: ${request.productionLine.name || "N/A"}
-      - Machine Name: ${request.machine.name || "N/A"}
-      - Spare Parts Used: ${JSON.stringify(spareParts)}
-      - Machine Downtime: ${machineDowntime} minutes
-      - Production Line Downtime: ${productionLineDowntime} minutes
-      - Solution: ${solution}
-      - Recommendations: ${recommendations}
-      - Attachments:
-      - ${attachmentsText}
-      - Link: http://mydomain/maintenance-request/${request.requestID}`;
-
+    const emailHtml = `
+    <h2>✅ Maintenance Request Closed</h2>
+    <p><strong>🆔 Request ID:</strong> ${request.requestID}</p>
+    <p><strong>🏭 Production Line:</strong> ${
+      request.productionLine.name || "N/A"
+    }</p>
+    <p><strong>🛠 Machine Name:</strong> ${request.machine.name || "N/A"}</p>
+    
+    <p><strong>🔩 Spare Parts Used:</strong><br>
+       ${
+         spareParts.length > 0
+           ? spareParts
+               .map(
+                 (part) =>
+                   `✔️ ${part.partName || "Unknown Part"} (${
+                     part.quantity || 1
+                   })`
+               )
+               .join("<br>")
+           : "No spare parts used"
+       }
+    </p>
+    
+    <p><strong>⏳ Machine Downtime:</strong> ${machineDowntime} minutes</p>
+    <p><strong>📉 Production Line Downtime:</strong> ${productionLineDowntime} minutes</p>
+    <p><strong>🔧 Solution:</strong> ${solution || "No solution provided"}</p>
+    <p><strong>📌 Recommendations:</strong> ${
+      recommendations || "No recommendations provided"
+    }</p>
+    
+    <p><strong>📎 Attachments:</strong><br> 
+       ${
+         attachmentsText && attachmentsText.trim().length > 0
+           ? attachmentsText
+               .split("\n")
+               .map((att) => `📂 <a href="${att}">${att}</a>`)
+               .join("<br>")
+           : "No attachments provided"
+       }
+    </p>
+    
+    <p>🔗 <strong>View Request:</strong> <a href="http://mydomain/maintenance-request/${
+      request.requestID
+    }">http://mydomain/maintenance-request/${request.requestID}</a></p>
+    `;
     await sendEmail(
       process.env.MAINTENANCE_SUPERVISOR_EMAIL,
       "Maintenance Request Closed",
-      emailText
+      emailHtml
     );
 
     res.status(200).json(request);

@@ -515,8 +515,10 @@ exports.getStaff = async (req, res) => {
   try {
     // Find the department by name (assuming the department name is lowercase)
     const department = await Department.findOne({
-      _id: "6790aac8f0b2bdf1744d24dc",
-    }).populate("employees");
+      name: "maintenance technical",
+    })
+      .populate("employees")
+      .lean();
 
     if (!department) {
       return res

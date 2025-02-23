@@ -13,7 +13,9 @@ app.use(express.urlencoded({ extended: true })); // Parse URL-encoded form data
 app.use(cors());
 // API Routes
 app.use("/api", routes);
-
+app.get("/", (req, res) => {
+  res.send("Server is running");
+});
 // Error handling middleware
 app.use(notFound);
 app.use(errorHandler);

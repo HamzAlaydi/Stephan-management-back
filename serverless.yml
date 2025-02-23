@@ -9,6 +9,7 @@ provider:
 
 package:
   patterns:
+    - "!node_modules/**"   # Exclude everything in node_modules
     - '!node_modules/.bin/**'  # ✅ Exclude unnecessary binaries
     - '!node_modules/**/test/**'  # ✅ Exclude test files
     - '!node_modules/aws-sdk/**'  # ✅ AWS SDK is included by default

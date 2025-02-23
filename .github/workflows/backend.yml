@@ -22,7 +22,7 @@ jobs:
 
       # Step 4: Install Serverless Framework locally
       - name: Install Serverless
-        run: npm install serverless
+        run: npm install serverless --legacy-peer-deps
 
       # Step 5: Configure AWS credentials
       - uses: aws-actions/configure-aws-credentials@v4

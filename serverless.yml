@@ -9,14 +9,13 @@ provider:
 
 package:
   patterns:
-    - '!node_modules/.bin/**'  # Exclude unnecessary binaries
-    - '!node_modules/**/test/**'  # Exclude test files in node_modules
-    - '!.git/**'
-    - '!tests/**'
-    - '!logs/**'
-    - '!docs/**'
-    - '!.env'
-    - '!.vscode/**'
+    - '!node_modules/**'  # Exclude all node_modules
+    - '!tests/**'  # Exclude tests
+    - '!logs/**'  # Exclude logs
+    - '!docs/**'  # Exclude documentation
+    - '!.*'  # Exclude hidden files (.git, .vscode, .env)
+    - '!src/**'  # Exclude source files (if not needed)
+    - 'node_modules/aws-sdk/**'  # AWS SDK is included by default in Lambda
 
 functions:
   app:

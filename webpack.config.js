@@ -4,7 +4,18 @@ const path = require('path');
 module.exports = {
   entry: './server.js',  // Entry point of your app
   target: 'node',  // Target Node.js environment
-  externals: [nodeExternals()],  // Exclude node_modules from the bundle
+  externals: [nodeExternals({
+  allowlist: [
+    /^dotenv/,  // Include dotenv
+    /^express/,  // Include express
+    /^mongoose/,  // Include mongoose
+    /^jsonwebtoken/,  // Include jsonwebtoken
+    /^nodemailer/,  // Include nodemailer
+    /^multer/,  // Include multer
+    /^bcryptjs/,  // Include bcryptjs
+    /^cors/  // Include cors
+  ]
+})],  // Exclude node_modules from the bundle
   output: {
     libraryTarget: 'commonjs2',  // Output format for Lambda
     path: path.resolve(__dirname, '.webpack'),  // Output directory

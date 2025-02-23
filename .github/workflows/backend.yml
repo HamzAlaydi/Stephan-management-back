@@ -3,7 +3,7 @@ on:
   push:
     branches: [main]
     paths:
-      - 'backend/**'  # Update path to your backend code
+      - 'Stephan-management-back/**'  # Update path to your backend code
 
 jobs:
   deploy:

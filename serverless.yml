@@ -4,25 +4,27 @@ provider:
   name: aws
   runtime: nodejs20.x
   region: ca-central-1
+  deploymentBucket:
+    name: serverless-deployments-hamza.alaydi # Replace with your S3 bucket name
+    serverSideEncryption: AES256
   environment:
-    MONGODB_URI: "mongodb+srv://hamzaalaydi99:Hhaammzzaa2001@cluster0.vp5rr.mongodb.net/presentation"
+    MONGODB_URI: ${env:MONGO_URI}
+    JWT_SECRET: ${env:JWT_SECRET}
+    MAIL: ${env:MAIL}
+    MAIL_PASSWORD: ${env:MAIL_PASSWORD}
+    S3_BUCKET_NAME: ${env:S3_BUCKET_NAME}
 
 package:
   patterns:
-    - "!node_modules/**"   # Exclude everything in node_modules
-    - '!node_modules/.bin/**'  # ✅ Exclude unnecessary binaries
-    - '!node_modules/**/test/**'  # ✅ Exclude test files
-    - '!node_modules/aws-sdk/**'  # ✅ AWS SDK is included by default
-    - '!node_modules/**/docs/**'  # ✅ Exclude docs
-    - '!node_modules/**/*.md'  # ✅ Exclude markdown files
-    - '!node_modules/**/example*/**'  # ✅ Exclude example files
-    - '!tests/**'
-    - '!logs/**'
-    - '!docs/**'
-    - '!.*'
+    - '!node_modules/**'  # Exclude node_modules
+    - '!tests/**'  # Exclude tests
+    - '!.git/**'  # Exclude .git folder
+    - '!logs/**'  # Exclude logs
+    - '!docs/**'  # Exclude docs
+    - '!.*'  # Exclude hidden files
 
 functions:
-   my-backend-dev-app:
+  my-backend-dev-app:
     handler: server.handler
     events:
       - http: ANY /
@@ -30,4 +32,3 @@ functions:
 
 plugins:
   - serverless-offline
-  - serverless-dotenv-plugin

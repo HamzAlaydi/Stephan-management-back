@@ -16,12 +16,15 @@ provider:
 
 package:
   patterns:
-    - '!node_modules/**'  # Exclude node_modules
-    - '!tests/**'  # Exclude tests
-    - '!.git/**'  # Exclude .git folder
-    - '!logs/**'  # Exclude logs
-    - '!docs/**'  # Exclude docs
-    - '!.*'  # Exclude hidden files
+    - '!node_modules/.bin/**'  # Exclude unnecessary binaries
+    - '!node_modules/**/test/**'  # Exclude test files
+    - '!node_modules/**/docs/**'  # Exclude docs
+    - '!node_modules/**/*.md'  # Exclude markdown files
+    - '!node_modules/**/example*/**'  # Exclude example files
+    - '!tests/**'
+    - '!logs/**'
+    - '!docs/**'
+    - '!.*'
 
 functions:
   my-backend-dev-app:

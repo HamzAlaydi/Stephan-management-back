@@ -13,9 +13,12 @@ provider:
 
 package:
   patterns:
-    - '!node_modules/**'
+    - '!node_modules/.bin/**'  # Exclude unnecessary binaries
+    - '!node_modules/**/test/**'  # Exclude test files
+    - '!node_modules/**/docs/**'  # Exclude docs
+    - '!node_modules/**/*.md'  # Exclude markdown files
+    - '!node_modules/**/example*/**'  # Exclude example files
     - '!tests/**'
-    - '!.git/**'
     - '!logs/**'
     - '!docs/**'
     - '!.*'

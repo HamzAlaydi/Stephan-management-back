@@ -4,9 +4,6 @@ provider:
   name: aws
   runtime: nodejs20.x
   region: ca-central-1
-  deploymentBucket:
-    name: serverless-deployments-hamza.alaydi  # Replace with your bucket name
-    serverSideEncryption: AES256
   environment:
     MONGODB_URI: ${env:MONGO_URI}
     JWT_SECRET: ${env:JWT_SECRET}
@@ -15,12 +12,9 @@ provider:
     S3_BUCKET_NAME: ${env:S3_BUCKET_NAME}
 
 package:
+  individually: true  # Package each function separately
   patterns:
-    - '!node_modules/.bin/**'  # Exclude unnecessary binaries
-    - '!node_modules/**/test/**'  # Exclude test files
-    - '!node_modules/**/docs/**'  # Exclude docs
-    - '!node_modules/**/*.md'  # Exclude markdown files
-    - '!node_modules/**/example*/**'  # Exclude example files
+    - '!node_modules/**'  # Exclude node_modules (Webpack will handle dependencies)
     - '!tests/**'
     - '!logs/**'
     - '!docs/**'
@@ -28,10 +22,16 @@ package:
 
 functions:
   my-backend-dev-app:
-    handler: server.handler
+    handler: .webpack/handler.handler  # Use the bundled handler
     events:
       - http: ANY /
       - http: ANY /{proxy+}
 
 plugins:
+  - serverless-webpack  # Add Webpack plugin
   - serverless-offline
+
+custom:
+  webpack:
+    webpackConfig: 'webpack.config.js'  # Path to Webpack config
+    includeModules: true  # Include external modules

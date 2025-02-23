@@ -5,20 +5,18 @@ provider:
   runtime: nodejs20.x
   region: ca-central-1
   environment:
-    MONGODB_URI: ${env:MONGODB_URI} # Will pull from GitHub Secrets later
+    MONGODB_URI: ${env:MONGODB_URI}
 
 package:
   patterns:
     - '!node_modules/.bin/**'  # Exclude unnecessary binaries
     - '!node_modules/**/test/**'  # Exclude test files in node_modules
-    - '!.git/**'          # Exclude .git folder
-    - '!tests/**'         # Exclude tests
-    - '!logs/**'          # Exclude logs
-    - '!docs/**'          # Exclude docs
-    - '!.env'             # Exclude .env file
-    - '!.vscode/**'       # Exclude .vscode folder
-    - '!**/*.md'          # Exclude markdown files
-    - '!**/*.log'         # Exclude log files
+    - '!.git/**'
+    - '!tests/**'
+    - '!logs/**'
+    - '!docs/**'
+    - '!.env'
+    - '!.vscode/**'
 
 functions:
   app:
@@ -28,4 +26,4 @@ functions:
       - http: ANY /{proxy+}
 
 plugins:
-  - serverless-offline  # For local development
+  - serverless-offline

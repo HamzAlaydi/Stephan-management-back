@@ -31,9 +31,6 @@
     "nodemon": "^3.1.9",
     "serverless-dotenv-plugin": "^6.0.0",
     "serverless-esbuild": "^1.54.6",
-    "serverless-offline": "^14.4.0",
-    "serverless-webpack": "^5.15.0",
-    "webpack": "^5.98.0",
-    "webpack-node-externals": "^3.0.0"
+    "serverless-offline": "^14.4.0"
   }
 }

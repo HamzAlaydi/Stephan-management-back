@@ -2,41 +2,16 @@ const nodeExternals = require('webpack-node-externals');
 const path = require('path');
 
 module.exports = {
-  entry: './server.js',  // Entry point of your app
-  target: 'node',  // Target Node.js environment
-  externals: [nodeExternals({
-  allowlist: [
-    /^dotenv/,  // Include dotenv
-    /^express/,  // Include express
-    /^mongoose/,  // Include mongoose
-    /^jsonwebtoken/,  // Include jsonwebtoken
-    /^nodemailer/,  // Include nodemailer
-    /^multer/,  // Include multer
-    /^bcryptjs/,  // Include bcryptjs
-    /^cors/  // Include cors
-  ]
-})],  // Exclude node_modules from the bundle
+  entry: "./server.js",
+  target: "node",
+  externals: [nodeExternals()],
   output: {
-    libraryTarget: 'commonjs2',  // Output format for Lambda
-    path: path.resolve(__dirname, '.webpack'),  // Output directory
-    filename: 'handler.js'  // Output file name
+    libraryTarget: "commonjs2",
+    path: path.resolve(__dirname, ".webpack"),
+    filename: "handler.js",
   },
-  mode: 'production',  // Optimize for production
+  mode: "production",
   optimization: {
-    minimize: true  // Minimize the bundle
+    minimize: true,
   },
-  module: {
-    rules: [
-      {
-        test: /\.js$/,  // Process .js files
-        exclude: /node_modules/,  // Exclude node_modules
-        use: {
-          loader: 'babel-loader',  // Use Babel for transpilation
-          options: {
-            presets: ['@babel/preset-env']  // Use Babel preset for Node.js
-          }
-        }
-      }
-    ]
-  }
 };

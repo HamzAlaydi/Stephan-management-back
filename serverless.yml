@@ -4,9 +4,6 @@ provider:
   name: aws
   runtime: nodejs20.x
   region: ca-central-1
-  deploymentBucket:
-    name: serverless-deployments-hamza.alaydi
-    serverSideEncryption: AES256
   environment:
     MONGODB_URI: ${env:MONGO_URI}
     JWT_SECRET: ${env:JWT_SECRET}
@@ -15,28 +12,29 @@ provider:
     S3_BUCKET_NAME: ${env:S3_BUCKET_NAME}
 
 package:
-  individually: true
   patterns:
+    - '!node_modules/**'
     - '!tests/**'
+    - '!.git/**'
     - '!logs/**'
     - '!docs/**'
     - '!.*'
 
 functions:
   my-backend-dev-app:
-    handler: handler.main  # Ensure this matches your entry file
+    handler: server.handler
     events:
       - http: ANY /
       - http: ANY /{proxy+}
 
 plugins:
-  - serverless-esbuild
   - serverless-offline
 
 custom:
   esbuild:
     bundle: true
     minify: true
-    sourcemap: false
-    external:
-      - aws-sdk  # Exclude AWS SDK to reduce package size
+    sourcemap: true
+    exclude: ['aws-sdk']
+    target: 'node20'
+    platform: 'node'

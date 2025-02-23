@@ -1,0 +1,119 @@
+{
+  "E:\\newWork\\stephan\\maintenance-manegment\\serverless.yml": {
+    "versionFramework": "4.6.4",
+    "servicePath": "E:\\newWork\\stephan\\maintenance-manegment\\serverless.yml",
+    "serviceConfigFileName": "serverless.yml",
+    "service": {
+      "service": "my-backend",
+      "provider": {
+        "name": "aws",
+        "runtime": "nodejs20.x",
+        "region": "ca-central-1",
+        "environment": {
+          "MONGODB_URI": "mongodb+srv://hamzaalaydi99:Hhaammzzaa2001@cluster0.vp5rr.mongodb.net/presentation",
+          "JWT_SECRET": "<REDACTED>",
+          "MAIL": "hamza.alaydi.99@gmail.com",
+          "MAIL_PASSWORD": "<REDACTED>",
+          "S3_BUCKET_NAME": "serverless-deployments-hamza.alaydi"
+        },
+        "stage": "dev",
+        "versionFunctions": true
+      },
+      "package": {
+        "individually": true,
+        "patterns": [
+          "!node_modules/**",
+          "!tests/**",
+          "!logs/**",
+          "!docs/**",
+          "!.*"
+        ]
+      },
+      "functions": {
+        "my-backend-dev-app": {
+          "handler": ".webpack/handler.handler",
+          "events": [
+            {
+              "http": "ANY /"
+            },
+            {
+              "http": "ANY /{proxy+}"
+            }
+          ]
+        }
+      },
+      "plugins": [
+        "serverless-webpack",
+        "serverless-offline"
+      ],
+      "custom": {
+        "webpack": {
+          "webpackConfig": "webpack.config.js",
+          "includeModules": true
+        }
+      }
+    },
+    "provider": {
+      "name": "aws",
+      "runtime": "nodejs20.x",
+      "region": "ca-central-1",
+      "environment": {
+        "MONGODB_URI": "mongodb+srv://hamzaalaydi99:Hhaammzzaa2001@cluster0.vp5rr.mongodb.net/presentation",
+        "JWT_SECRET": "<REDACTED>",
+        "MAIL": "hamza.alaydi.99@gmail.com",
+        "MAIL_PASSWORD": "<REDACTED>",
+        "S3_BUCKET_NAME": "serverless-deployments-hamza.alaydi"
+      },
+      "stage": "dev",
+      "versionFunctions": true
+    },
+    "dashboard": {
+      "isEnabledForService": false,
+      "requiredAuthentication": false,
+      "orgFeaturesInUse": null,
+      "orgObservabilityIntegrations": null,
+      "serviceAppId": null,
+      "serviceProvider": null,
+      "instanceParameters": null
+    },
+    "error": {
+      "message": "Serverless now includes ESBuild and supports Typescript out-of-the-box. But this conflicts with the plugin 'serverless-webpack'.\nYou can either remove this plugin and try Serverless's ESBuild support builtin, or you can set 'build.esbuild' to false in your 'serverless.yml'.\nFor more information go to, https://slss.io/buildoptions",
+      "stack": "ServerlessError3: Serverless now includes ESBuild and supports Typescript out-of-the-box. But this conflicts with the plugin 'serverless-webpack'.\nYou can either remove this plugin and try Serverless's ESBuild support builtin, or you can set 'build.esbuild' to false in your 'serverless.yml'.\nFor more information go to, https://slss.io/buildoptions\n    at PluginManager.addPlugin (file:///C:/Users/pc/.serverless/releases/4.6.4/package/dist/sf-core.js:1432:65)\n    at file:///C:/Users/pc/.serverless/releases/4.6.4/package/dist/sf-core.js:1432:1435\n    at Array.forEach (<anonymous>)\n    at PluginManager.loadAllPlugins (file:///C:/Users/pc/.serverless/releases/4.6.4/package/dist/sf-core.js:1432:1413)\n    at async Serverless.init (file:///C:/Users/pc/.serverless/releases/4.6.4/package/dist/sf-core.js:1439:9893)\n    at async runFramework (file:///C:/Users/pc/.serverless/releases/4.6.4/package/dist/sf-core.js:1466:838)\n    at async TraditionalRunner.run (file:///C:/Users/pc/.serverless/releases/4.6.4/package/dist/sf-core.js:1462:28364)\n    at async route (file:///C:/Users/pc/.serverless/releases/4.6.4/package/dist/sf-core.js:1508:2779)\n    at async Object.run (file:///C:/Users/pc/.serverless/releases/4.6.4/package/dist/sf-core.js:1509:3668)\n    at async run2 (file:///C:/Users/pc/.serverless/releases/4.6.4/package/dist/sf-core.js:1509:4821)",
+      "code": "PLUGIN_TYPESCRIPT_CONFLICT"
+    },
+    "serviceRawFile": "service: my-backend\r\n\r\nprovider:\r\n  name: aws\r\n  runtime: nodejs20.x\r\n  region: ca-central-1\r\n  environment:\r\n    MONGODB_URI: ${env:MONGO_URI}\r\n    JWT_SECRET: ${env:JWT_SECRET}\r\n    MAIL: ${env:MAIL}\r\n    MAIL_PASSWORD: ${env:MAIL_PASSWORD}\r\n    S3_BUCKET_NAME: ${env:S3_BUCKET_NAME}\r\n\r\npackage:\r\n  individually: true  # Package each function separately\r\n  patterns:\r\n    - '!node_modules/**'  # Exclude node_modules (Webpack will handle dependencies)\r\n    - '!tests/**'\r\n    - '!logs/**'\r\n    - '!docs/**'\r\n    - '!.*'\r\n\r\nfunctions:\r\n  my-backend-dev-app:\r\n    handler: .webpack/handler.handler  # Use the bundled handler\r\n    events:\r\n      - http: ANY /\r\n      - http: ANY /{proxy+}\r\n\r\nplugins:\r\n  - serverless-webpack  # Add Webpack plugin\r\n  - serverless-offline\r\n\r\ncustom:\r\n  webpack:\r\n    webpackConfig: 'webpack.config.js'  # Path to Webpack config\r\n    includeModules: true  # Include external modules",
+    "command": [
+      "offline"
+    ],
+    "options": {},
+    "orgId": "7ac0ac56-cdd5-4f9e-b3aa-45bb6bc7b50f",
+    "orgName": "grows",
+    "userId": "00yWHwxnxPghfW47n1",
+    "userName": "grows",
+    "serviceProviderAwsAccountId": "964816885138",
+    "serviceProviderAwsCfStackName": "my-backend-dev",
+    "serviceProviderAwsCfStackId": "arn:aws:cloudformation:ca-central-1:964816885138:stack/my-backend-dev/a1347480-f14d-11ef-b80f-06278c194f8d",
+    "serviceProviderAwsCfStackCreated": "2025-02-22T18:48:39.264Z",
+    "serviceProviderAwsCfStackUpdated": "2025-02-23T15:21:26.412Z",
+    "serviceProviderAwsCfStackStatus": "UPDATE_COMPLETE",
+    "serviceProviderAwsCfStackOutputs": [
+      {
+        "OutputKey": "MyDashbackendDashdevDashappLambdaFunctionQualifiedArn",
+        "OutputValue": "arn:aws:lambda:ca-central-1:964816885138:function:my-backend-dev-my-backend-dev-app:2",
+        "Description": "Current Lambda function version",
+        "ExportName": "sls-my-backend-dev-MyDashbackendDashdevDashappLambdaFunctionQualifiedArn"
+      },
+      {
+        "OutputKey": "ServiceEndpoint",
+        "OutputValue": "https://jtaxnuadse.execute-api.ca-central-1.amazonaws.com/dev",
+        "Description": "URL of the service endpoint",
+        "ExportName": "sls-my-backend-dev-ServiceEndpoint"
+      },
+      {
+        "OutputKey": "ServerlessDeploymentBucketName",
+        "OutputValue": "serverless-deployments-hamza.alaydi",
+        "ExportName": "sls-my-backend-dev-ServerlessDeploymentBucketName"
+      }
+    ]
+  }
+}

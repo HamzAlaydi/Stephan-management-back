@@ -22,7 +22,8 @@ package:
     - '!.*'
 
 functions:
-  my-backend-dev-app:
+  app:
+    name: my-backend-dev-app
     handler: server.handler
     events:
       - http: ANY /

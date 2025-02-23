@@ -1,0 +1,38 @@
+name: Deploy Backend
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'backend/**'  # Update path to your backend code
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      # Step 1: Checkout the code
+      - uses: actions/checkout@v4
+
+      # Step 2: Set up Node.js
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20  # Match Node.js version in serverless.yml
+
+      # Step 3: Install dependencies
+      - run: npm ci
+        working-directory: ./backend
+
+      # Step 4: Install Serverless Framework globally
+      - run: npm install -g serverless
+
+      # Step 5: Configure AWS credentials
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ca-central-1  # Match your AWS region
+
+      # Step 6: Deploy to AWS Lambda
+      - run: serverless deploy
+        working-directory: ./backend
+        env:
+          MONGODB_URI: ${{ secrets.MONGODB_URI }}

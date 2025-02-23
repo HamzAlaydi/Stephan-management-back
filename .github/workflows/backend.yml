@@ -2,7 +2,6 @@ name: Deploy Backend
 on:
   push:
     branches: [main]
-    
 
 jobs:
   deploy:
@@ -16,8 +15,8 @@ jobs:
         with:
           node-version: 20  # Match Node.js version in serverless.yml
 
-      # Step 3: Install dependencies
-      - run: npm ci
+      # Step 3: Install dependencies (Fix dependency issue)
+      - run: npm ci --legacy-peer-deps  # ✅ Fix dependency conflict
 
       # Step 4: Install Serverless Framework globally
       - run: npm install -g serverless
@@ -31,6 +30,5 @@ jobs:
 
       # Step 6: Deploy to AWS Lambda
       - run: serverless deploy
-        working-directory: ./backend
         env:
           MONGODB_URI: ${{ secrets.MONGODB_URI }}

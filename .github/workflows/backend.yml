@@ -13,22 +13,31 @@ jobs:
       # Step 2: Set up Node.js
       - uses: actions/setup-node@v4
         with:
-          node-version: 20  # Match your Node.js version
+          node-version: 20
+          cache: 'npm'
 
-      # Step 3: Install dependencies (Fixing dependency conflict)
-      - run: npm ci --legacy-peer-deps  
+      # Step 3: Navigate to backend directory
+      - name: Move to backend directory
+        run: cd backend
 
-      # Step 4: Install Serverless Framework globally
-      - run: npm install -g serverless
+      # Step 4: Install dependencies
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
 
-      # Step 5: Authenticate with Serverless Framework
-      - run: serverless login --token ${{ secrets.SERVERLESS_ACCESS_KEY }}
+      # Step 5: Install Serverless Framework locally (no global install needed)
+      - name: Install Serverless
+        run: npm install serverless
 
-      # Step 6: Create .env file dynamically
-      - run: |
-          echo "MONGODB_URI=${{ secrets.MONGODB_URI }}" > .env
+      # Step 6: Configure AWS credentials
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ca-central-1
 
       # Step 7: Deploy to AWS Lambda
-      - run: serverless deploy
+      - name: Deploy with Serverless
+        run: npx serverless deploy
         env:
           MONGODB_URI: ${{ secrets.MONGODB_URI }}
+          SERVERLESS_ACCESS_KEY: ${{ secrets.SERVERLESS_ACCESS_KEY }}

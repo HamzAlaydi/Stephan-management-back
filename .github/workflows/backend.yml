@@ -40,3 +40,4 @@ jobs:
           MAIL: ${{ secrets.MAIL }}
           MAIL_PASSWORD: ${{ secrets.MAIL_PASSWORD }}
           S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }}
+          SERVERLESS_ACCESS_KEY: ${{ secrets.SERVERLESS_ACCESS_KEY }}

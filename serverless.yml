@@ -5,7 +5,7 @@ provider:
   runtime: nodejs20.x
   region: ca-central-1
   deploymentBucket:
-    name: serverless-deployments-hamza.alaydi # Replace with your S3 bucket name
+    name: serverless-deployments-hamza.alaydi  # Replace with your bucket name
     serverSideEncryption: AES256
   environment:
     MONGODB_URI: ${env:MONGO_URI}

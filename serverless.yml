@@ -5,17 +5,7 @@ provider:
   runtime: nodejs20.x
   region: ca-central-1
   environment:
-    MONGO_URI: ${env:MONGO_URI}
-    NODE_ENV: ${env:NODE_ENV}
-    PORT: ${env:PORT}
-    JWT_SECRET: ${env:JWT_SECRET}
-    MAIL: ${env:MAIL}
-    MAIL_PASSWORD: ${env:MAIL_PASSWORD}
-    MAINTENANCE_SUPERVISOR_EMAIL: ${env:MAINTENANCE_SUPERVISOR_EMAIL}
-    AWS_ACCESS_KEY_ID: ${env:AWS_ACCESS_KEY_ID}
-    AWS_SECRET_ACCESS_KEY: ${env:AWS_SECRET_ACCESS_KEY}
-    AWS_REGION: ${env:AWS_REGION}
-    S3_BUCKET_NAME: ${env:S3_BUCKET_NAME}
+    MONGODB_URI: "mongodb+srv://hamzaalaydi99:Hhaammzzaa2001@cluster0.vp5rr.mongodb.net/presentation"
 
 package:
   patterns:
@@ -32,8 +22,7 @@ package:
     - '!.*'
 
 functions:
-  app:
-    name: my-backend-dev-app
+   my-backend-dev-app:
     handler: server.handler
     events:
       - http: ANY /

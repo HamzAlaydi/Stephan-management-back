@@ -9,7 +9,6 @@ dotenv.config();
 connectDB();
 
 // Export the handler for Lambda
-// module.exports.handler = serverless(app);
 
 // app.listen
 app.listen(process.env.PORT, () => {

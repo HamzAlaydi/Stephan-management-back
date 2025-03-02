@@ -15,7 +15,6 @@ app.use(cors());
 app.use("/api", routes);
 
 
-
 // Error handling middleware
 app.use(notFound);
 app.use(errorHandler);

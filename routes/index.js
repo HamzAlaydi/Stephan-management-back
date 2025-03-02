@@ -17,7 +17,7 @@ router.use("/request", maintenanceRoutes);
 
 // Root Endpoint
 router.get("/", (req, res) => {
-  res.json({ message: "Hi!" });
+  res.json({ message: "Hamza Alaydi!" });
 });
 
 module.exports = router;

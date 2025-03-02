@@ -17,9 +17,6 @@ const s3 = require("../config/s3Config");
 
 const registerEmployee = async (req, res) => {
   try {
-    console.log("Request Body:", req.body); // Log the request body
-    console.log("Uploaded File:", req.file); // Log the uploaded file
-
     // Validate required fields
     const requiredFields = ["name", "email", "password", "department"];
     const missingFields = requiredFields.filter((field) => !req.body[field]);
@@ -71,7 +68,6 @@ const registerEmployee = async (req, res) => {
 
     // Handle photo upload
     const photo = req.file ? req.file.key : null; // Get the S3 key from the uploaded file
-    console.log("Photo Key:", photo); // Log the S3 key
 
     // Create new employee
     const newEmployee = await Employee.create({
@@ -112,7 +108,6 @@ const registerEmployee = async (req, res) => {
       employee: employeeResponse,
     });
   } catch (error) {
-    console.error("Error in registerEmployee:", error);
     res.status(500).json({
       message: "Server error during registration",
       error: process.env.NODE_ENV === "development" ? error.message : undefined,
@@ -163,13 +158,9 @@ const getAllEmployees = async (req, res) => {
       .select("-password")
       .populate("department", "name"); // Exclude passwords from the response
 
-    console.log("Employees from DB:", employees); // Log the employees fetched from the database
-
     // Generate signed URLs for employee photos
     const employeesWithPhotoUrls = await Promise.all(
       employees.map(async (employee) => {
-        console.log("Employee Photo Key:", employee.photo); // Log the photo key for each employee
-
         let photoUrl = null;
         if (employee.photo) {
           const command = new GetObjectCommand({
@@ -177,7 +168,6 @@ const getAllEmployees = async (req, res) => {
             Key: employee.photo, // S3 key stored in the database
           });
           photoUrl = await getSignedUrl(s3, command, { expiresIn: 3600 }); // 1-hour expiration
-          console.log("Generated Photo URL:", photoUrl); // Log the generated signed URL
         }
         return {
           ...employee.toObject(), // Convert Mongoose document to plain object
@@ -188,7 +178,6 @@ const getAllEmployees = async (req, res) => {
 
     res.status(200).json(employeesWithPhotoUrls);
   } catch (error) {
-    console.error("Error in getAllEmployees:", error); // Log the error
     res.status(400).json({ message: error.message });
   }
 };
@@ -280,18 +269,15 @@ const updateEmployee = async (req, res) => {
       photoUrl,
     });
   } catch (error) {
-    console.error("Error updating employee:", error);
     res.status(500).json({ message: "Server error during update" });
   }
 };
-
 
 // Validate Token
 const validateToken = async (req, res) => {
   const token = req.headers.authorization?.split(" ")[1]; // Extract token from headers
 
   if (!token) {
-    console.log("NOTOKEN");
     return res.status(401).json({ valid: false, message: "No token provided" });
   }
 

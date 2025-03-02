@@ -16,7 +16,7 @@ jobs:
       # Step 2: Install dependencies
       - name: Install dependencies
         run: |
-          npm install --production
+          npm ci --production
           npm cache clean --force
 
       # Step 3: Prepare EC2 directory
@@ -54,5 +54,5 @@ jobs:
           key: ${{ secrets.SSH_KEY }}
           script: |
             cd /var/www/stephan-backend
-            npm install --production
+            npm ci --production
             pm2 restart stephan-backend

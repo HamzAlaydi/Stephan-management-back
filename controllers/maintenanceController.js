@@ -513,33 +513,32 @@ exports.deleteRequest = async (req, res) => {
 // Get all employees in the "Maintenance Technician" department
 exports.getStaff = async (req, res) => {
   try {
-    // Find the department by name (assuming the department name is lowercase)
-    const department = await Department.findOne({
-      name: "maintenance technical",
-    })
-      .populate("employees")
+    // Find employees where department.name = "maintenance technical"
+    const employees = await Employee.find({})
+      .populate({
+        path: "department",
+        match: { name: "maintenance technical" }, // Filter by department name
+      })
       .lean();
 
-    if (!department) {
-      return res
-        .status(404)
-        .json({ message: "Maintenance Technician department not found" });
-    }
+    // Filter out employees who don't belong to the specified department
+    const maintenanceTechnicians = employees.filter(
+      (employee) => employee.department !== null
+    );
 
     // Check if there are employees in the department
-    if (department.employees.length === 0) {
+    if (maintenanceTechnicians.length === 0) {
       return res.status(404).json({
         message: "No employees found in the Maintenance Technician department",
       });
     }
 
     // Return the list of employees in the department
-    res.status(200).json(department.employees);
+    res.status(200).json(maintenanceTechnicians);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
-
 exports.getMaintenanceSummary = async (req, res) => {
   try {
     const summary = await MaintenanceRequest.aggregate([
@@ -610,7 +609,7 @@ exports.getMaintenanceDetails = async (req, res) => {
     const maintenanceDetails = await MaintenanceRequest.findById(id)
       .populate("productionLine")
       .populate("machine")
-      .populate("createdBy", "name role")
+      .populate("createdBy")
       .populate("assignedTo", "name role");
 
     if (!maintenanceDetails) {

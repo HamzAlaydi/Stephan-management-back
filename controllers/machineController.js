@@ -198,9 +198,9 @@ const getMaintenanceHistory = async (req, res) => {
     const maintenanceHistory = await MaintenanceRequest.find({
       machine: machineId,
     })
-      .populate("createdBy", "name role")
-      .populate("assignedTo", "name role")
-      .populate("assignedBy", "name role")
+      .populate("createdBy")
+      .populate("assignedTo")
+      .populate("assignedBy")
 
       .sort({ createdAt: -1 });
 

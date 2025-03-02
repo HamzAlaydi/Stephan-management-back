@@ -13,20 +13,21 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # Step 2: Install dependencies
+      # Step 2: Install dependencies locally
       - name: Install dependencies
         run: |
           npm install --production
           npm cache clean --force
 
-      # Step 3: Prepare EC2 directory
-      - name: Prepare EC2 Directory
+      # Step 3: Backup .env file before deleting the directory
+      - name: Backup .env file
         uses: appleboy/ssh-action@v1.0.0
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ubuntu
           key: ${{ secrets.SSH_KEY }}
           script: |
+            mv /var/www/stephan-backend/.env /tmp/.env || true
             sudo rm -rf /var/www/stephan-backend
             sudo mkdir -p /var/www/stephan-backend
             sudo chown -R ubuntu:ubuntu /var/www/stephan-backend
@@ -45,14 +46,15 @@ jobs:
           strip_components: 0
           debug: true
 
-      # Step 5: Configure permissions and restart the backend
-      - name: Configure Permissions and Restart Backend
+      # Step 5: Restore .env file and restart backend
+      - name: Restore .env file and Restart Backend
         uses: appleboy/ssh-action@v1.0.0
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ubuntu
           key: ${{ secrets.SSH_KEY }}
           script: |
+            mv /tmp/.env /var/www/stephan-backend/.env || true
             cd /var/www/stephan-backend
             npm install --production
             pm2 restart stephan-backend

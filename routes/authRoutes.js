@@ -8,7 +8,7 @@ const {
   validateToken, // Add this
 } = require("../controllers/authController");
 const { protect, admin } = require("../middleware/authMiddleware");
-const upload = require("../middleware/upload");
+const upload = require("../middleware/upload")("employee-photos");
 const Employee = require("../models/Employee");
 const jwt = require("jsonwebtoken");
 
@@ -20,7 +20,7 @@ router.post(
   "/register",
   protect,
   admin,
-  upload.single("photo"), // Add file upload middleware
+  upload.single("photo"), // Handles employee photos
   registerEmployee
 ); // Only admins can register new employees
 router.get("/", protect, admin, getAllEmployees); // Fetch all employees (protected, admin-only)

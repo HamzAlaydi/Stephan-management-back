@@ -2,7 +2,7 @@
 require("dotenv").config();
 const express = require("express");
 const maintenanceController = require("../controllers/maintenanceController");
-const upload = require("../middleware/upload");
+const upload = require("../middleware/upload")("attachments"); // Maintenance attachments folder
 const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
 const { GetObjectCommand } = require("@aws-sdk/client-s3");
 

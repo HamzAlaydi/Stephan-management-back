@@ -65,26 +65,31 @@ const multerS3 = require("multer-s3-v3");
 const s3 = require("../config/s3Config");
 
 
-const upload = multer({
-  storage: multerS3({
-    s3: s3,
-    bucket: process.env.S3_BUCKET_NAME,
-    metadata: (req, file, cb) => cb(null, { fieldName: file.fieldname }),
-    key: (req, file, cb) =>
-      cb(null, `employee-photos/${Date.now()}-${file.originalname}`),
-    contentType: multerS3.AUTO_CONTENT_TYPE, // Auto-detect MIME type
-  }),
-  fileFilter: (req, file, cb) => {
-    const allowedTypes = ["image/jpeg", "image/png", "image/jpg"];
-    allowedTypes.includes(file.mimetype)
-      ? cb(null, true)
-      : cb(new Error("Invalid file type"));
-  },
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
-});
+const createUpload = (folderName) =>
+  multer({
+    storage: multerS3({
+      s3: s3,
+      bucket: process.env.S3_BUCKET_NAME,
+      metadata: (req, file, cb) => cb(null, { fieldName: file.fieldname }),
+      key: (req, file, cb) =>
+        cb(null, `${folderName}/${Date.now()}-${file.originalname}`),
+      contentType: multerS3.AUTO_CONTENT_TYPE,
+    }),
+    fileFilter: (req, file, cb) => {
+      const allowedTypes = [
+        "image/jpeg",
+        "image/png",
+        "image/jpg",
+        "application/pdf",
+      ];
+      allowedTypes.includes(file.mimetype)
+        ? cb(null, true)
+        : cb(new Error("Invalid file type"));
+    },
+    limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+  });
 
-
-module.exports = upload;
+module.exports = createUpload;
 
 // https://stephano-group-attachments-bucket-ca.s3.
 // ca-central-1.amazonaws.com/

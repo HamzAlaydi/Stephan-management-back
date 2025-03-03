@@ -87,7 +87,7 @@ exports.createMaintenanceRequest = async (req, res) => {
         <p><strong>🔎 Issue Description:</strong> ${breakDownCauses}</p>
         
         <div style="margin-top: 20px; text-align: center;">
-          <a href="http://mydomain/maintenance-request/${newRequest.requestID}" 
+          <a href="https://mms.stephanosbakedgoods.com/maintenance-request" 
             style="display: inline-block; padding: 10px 20px; background: #007bff; color: #fff; text-decoration: none; font-weight: bold; border-radius: 4px;">
             🔗 View Request
           </a>
@@ -160,7 +160,7 @@ exports.assignRequest = async (req, res) => {
         <p><strong>🔎 Break Down Causes:</strong> ${request.breakDownCauses}</p>
   
         <div style="margin-top: 20px; text-align: center;">
-          <a href="http://mydomain/maintenance-request/${request._id}" 
+          <a href="https://mms.stephanosbakedgoods.com/maintenance-request" 
             style="display: inline-block; padding: 10px 20px; background: #007bff; color: #fff; text-decoration: none; font-weight: bold; border-radius: 4px;">
             🔗 View Request
           </a>
@@ -376,9 +376,7 @@ exports.addSpareParts = async (req, res) => {
        }
     </p>
     
-    <p>🔗 <strong>View Request:</strong> <a href="http://mydomain/maintenance-request/${
-      request.requestID
-    }">http://mydomain/maintenance-request/${request.requestID}</a></p>
+    <p>🔗 <strong>View Request:</strong> <a href="https://mms.stephanosbakedgoods.com/summaries"> View Request</a></p>
     `;
     await sendEmail(
       process.env.MAINTENANCE_SUPERVISOR_EMAIL,
@@ -493,7 +491,7 @@ exports.deleteRequest = async (req, res) => {
     // Send email to the maintenance supervisor
     const emailText = `A Maintenance Request has been deleted:
       - Request ID: ${request.id}
-      - Link: http://mydomain/maintenance-request/${request._id}`;
+      - Link: https://mms.stephanosbakedgoods.com/maintenance-request`;
 
     await sendEmail(
       process.env.MAINTENANCE_SUPERVISOR_EMAIL,

@@ -12,6 +12,7 @@ const {
 } = require("@aws-sdk/client-s3");
 const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
 const s3 = require("../config/s3Config");
+const { default: mongoose } = require("mongoose");
 
 // registerEmployee
 
@@ -80,6 +81,11 @@ const registerEmployee = async (req, res) => {
       photo, // Store the S3 key in the database
     });
 
+    await Department.findByIdAndUpdate(
+      department,
+      { $addToSet: { employees: newEmployee._id } }, // Add employee to department
+      { new: true }
+    );
     // Generate signed URL for photo
     let photoUrl = null;
     if (photo) {
@@ -108,6 +114,8 @@ const registerEmployee = async (req, res) => {
       employee: employeeResponse,
     });
   } catch (error) {
+    console.log(error);
+
     res.status(500).json({
       message: "Server error during registration",
       error: process.env.NODE_ENV === "development" ? error.message : undefined,
@@ -208,18 +216,24 @@ const deleteEmployee = async (req, res) => {
 // controllers/authController.js
 const updateEmployee = async (req, res) => {
   const { id } = req.params;
+  const session = await mongoose.startSession();
+  session.startTransaction();
 
   try {
-    const employee = await Employee.findById(id);
-
+    // Find the employee to update
+    const employee = await Employee.findById(id).session(session);
     if (!employee) {
+      await session.abortTransaction();
+      session.endSession();
       return res.status(404).json({ message: "Employee not found" });
     }
 
-    // Update fields from req.body
+    // Track the old department ID
+    const oldDepartmentId = employee.department;
+
+    // Update employee fields from request body
     if (req.body.name) employee.name = req.body.name;
     if (req.body.email) employee.email = req.body.email;
-    if (req.body.department) employee.department = req.body.department;
     if (req.body.overtimeHoursPrice)
       employee.overtimeHoursPrice = req.body.overtimeHoursPrice;
     if (req.body.isAdmin !== undefined) employee.isAdmin = req.body.isAdmin;
@@ -246,8 +260,47 @@ const updateEmployee = async (req, res) => {
       employee.photo = req.file.key;
     }
 
+    // Handle department update
+    if (req.body.department) {
+      const newDepartmentId = req.body.department;
+
+      // Validate new department exists
+      const newDepartment = await Department.findById(newDepartmentId).session(
+        session
+      );
+      if (!newDepartment) {
+        await session.abortTransaction();
+        session.endSession();
+        return res.status(404).json({ message: "New department not found" });
+      }
+
+      // Update employee's department
+      employee.department = newDepartmentId;
+
+      // If department changed, update both old and new departments
+      if (oldDepartmentId.toString() !== newDepartmentId.toString()) {
+        // Remove employee from old department
+        await Department.findByIdAndUpdate(
+          oldDepartmentId,
+          { $pull: { employees: employee._id } },
+          { session }
+        );
+
+        // Add employee to new department
+        await Department.findByIdAndUpdate(
+          newDepartmentId,
+          { $addToSet: { employees: employee._id } },
+          { session }
+        );
+      }
+    }
+
     // Save the updated employee
-    const updatedEmployee = await employee.save();
+    const updatedEmployee = await employee.save({ session });
+
+    // Commit the transaction
+    await session.commitTransaction();
+    session.endSession();
 
     // Generate signed URL for the new photo
     let photoUrl = null;
@@ -259,6 +312,7 @@ const updateEmployee = async (req, res) => {
       photoUrl = await getSignedUrl(s3, command, { expiresIn: 3600 });
     }
 
+    // Send response
     res.status(200).json({
       _id: updatedEmployee._id,
       name: updatedEmployee.name,
@@ -269,6 +323,10 @@ const updateEmployee = async (req, res) => {
       photoUrl,
     });
   } catch (error) {
+    // Handle errors and roll back the transaction
+    await session.abortTransaction();
+    session.endSession();
+    console.error("Error updating employee:", error);
     res.status(500).json({ message: "Server error during update" });
   }
 };

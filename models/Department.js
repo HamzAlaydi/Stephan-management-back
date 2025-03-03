@@ -6,11 +6,7 @@ const departmentSchema = mongoose.Schema(
     name: {
       type: String,
       // make enum
-      enum: [
-        "maintenance supervisor",
-        "maintenance technical",
-        "production line supervisor",
-      ],
+      enum: ["maintenance supervisor", "maintenance technical", "production"],
       required: true,
       unique: true,
     },

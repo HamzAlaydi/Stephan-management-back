@@ -173,11 +173,7 @@ exports.assignRequest = async (req, res) => {
     </div>
   `;
 
-    await sendEmail(
-      "hamza.alaydi.99@outlook.sa",
-      "Assigned Maintenance Request",
-      emailHtml
-    );
+    await sendEmail(assignedToEmail, "Assigned Maintenance Request", emailHtml);
 
     res.status(200).json(request);
   } catch (error) {

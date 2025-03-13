@@ -396,7 +396,6 @@ exports.getRequestsForSupervisor = async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
     const loggedInUserId = req.query.user;
-    // Get the logged-in user's ID from the request (assuming it's added by your auth middleware)
 
     // Build query object
     const query = {};

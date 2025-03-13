@@ -28,6 +28,8 @@ const sendEmail = async (
   attachments = []
 ) => {
   try {
+    console.log({ to });
+
     const mailOptions = {
       from: `"Stephan Maintenance Management System" <${process.env.MAIL}>`, // More professional sender name
       to,

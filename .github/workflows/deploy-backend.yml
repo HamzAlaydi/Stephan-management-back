@@ -69,5 +69,5 @@ jobs:
             # Install and restart
             cd /var/www/stephan-backend
             npm install --production
-            pm2 restart stephan-backend --update-env
+            pm2 restart all
 

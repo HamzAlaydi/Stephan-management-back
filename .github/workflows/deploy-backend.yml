@@ -9,32 +9,36 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # Step 1: Checkout the code
+      # Step 1: Checkout code
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          # Exclude .env from being checked out
+          sparse-checkout: |
+            /*
+            !.env
 
-      # Step 2: Install dependencies locally
+      # Step 2: Install dependencies
       - name: Install dependencies
         run: |
           npm install --production
           npm cache clean --force
 
-      # Step 3: Backup .env file before deleting the directory
-      - name: Backup .env file
+      # Step 3: Backup existing .env
+      - name: Backup .env
         uses: appleboy/ssh-action@v1.0.0
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ubuntu
           key: ${{ secrets.SSH_KEY }}
           script: |
-            mv /var/www/stephan-backend/.env /tmp/.env || true
+            sudo cp /var/www/stephan-backend/.env /tmp/.env || true
             sudo rm -rf /var/www/stephan-backend
             sudo mkdir -p /var/www/stephan-backend
             sudo chown -R ubuntu:ubuntu /var/www/stephan-backend
-            sudo chmod -R 755 /var/www/stephan-backend
 
-      # Step 4: Deploy backend code to EC2
-      - name: Deploy Backend Code
+      # Step 4: Deploy code (EXCLUDING .env)
+      - name: Deploy Code
         uses: appleboy/scp-action@v0.1.6
         with:
           host: ${{ secrets.EC2_HOST }}
@@ -44,17 +48,22 @@ jobs:
           target: "/var/www/stephan-backend"
           overwrite: true
           strip_components: 0
-          debug: true
+          # Exclude .env from deployment
+          exclude: |
+            .env
+            .gitignore
+            .github/
 
-      # Step 5: Restore .env file and restart backend
-      - name: Restore .env file and Restart Backend
+      # Step 5: Restore .env and restart
+      - name: Restore .env & Restart
         uses: appleboy/ssh-action@v1.0.0
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ubuntu
           key: ${{ secrets.SSH_KEY }}
           script: |
-            mv /tmp/.env /var/www/stephan-backend/.env || true
+            sudo cp /tmp/.env /var/www/stephan-backend/.env || true
+            sudo chmod 644 /var/www/stephan-backend/.env
             cd /var/www/stephan-backend
             npm install --production
-            pm2 restart stephan-backend
+            pm2 restart stephan-backend --update-env

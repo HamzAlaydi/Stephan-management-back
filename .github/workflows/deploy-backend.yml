@@ -27,13 +27,17 @@ jobs:
           username: ubuntu
           key: ${{ secrets.SSH_KEY }}
           script: |
-            mv /var/www/stephan-backend/.env /tmp/.env || true
+            # Remove immutability flag if set
+            sudo chattr -i /var/www/stephan-backend/.env || true
+            # Backup .env
+            sudo cp /var/www/stephan-backend/.env /tmp/.env || true
+            # Clean up directory
             sudo rm -rf /var/www/stephan-backend
             sudo mkdir -p /var/www/stephan-backend
             sudo chown -R ubuntu:ubuntu /var/www/stephan-backend
             sudo chmod -R 755 /var/www/stephan-backend
 
-      # Step 4: Deploy backend code to EC2
+      # Step 4: Deploy backend code to EC2 (EXCLUDING .env)
       - name: Deploy Backend Code
         uses: appleboy/scp-action@v0.1.6
         with:
@@ -44,7 +48,10 @@ jobs:
           target: "/var/www/stephan-backend"
           overwrite: true
           strip_components: 0
-          debug: true
+          exclude: |
+            .env
+            .gitignore
+            .github/
 
       # Step 5: Restore .env file and restart backend
       - name: Restore .env file and Restart Backend
@@ -54,7 +61,12 @@ jobs:
           username: ubuntu
           key: ${{ secrets.SSH_KEY }}
           script: |
-            mv /tmp/.env /var/www/stephan-backend/.env || true
+            # Restore .env
+            sudo cp /tmp/.env /var/www/stephan-backend/.env || true
+            sudo chmod 644 /var/www/stephan-backend/.env
+            # Reapply immutability flag
+            sudo chattr +i /var/www/stephan-backend/.env || true
+            # Install and restart
             cd /var/www/stephan-backend
             npm install --production
-            pm2 restart stephan-backend
+            pm2 restart stephan-backend --update-env

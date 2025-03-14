@@ -9,13 +9,12 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # Step 1: Checkout code
+      # Step 1: Checkout code (exclude .env)
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          # Exclude .env from being checked out
           sparse-checkout: |
-            /*
+            *
             !.env
 
       # Step 2: Install dependencies
@@ -48,7 +47,6 @@ jobs:
           target: "/var/www/stephan-backend"
           overwrite: true
           strip_components: 0
-          # Exclude .env from deployment
           exclude: |
             .env
             .gitignore

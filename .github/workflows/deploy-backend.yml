@@ -61,14 +61,15 @@ jobs:
           key: ${{ secrets.SSH_KEY }}
           script: |
             if [ -f "/tmp/.env" ]; then
-            sudo cp /tmp/.env /var/www/stephan-backend/.env
-            sudo chown ubuntu:ubuntu /var/www/stephan-backend/.env  # Set ownership
-            sudo chmod 644 /var/www/stephan-backend/.env
-            echo ".env restored."
+              sudo cp /tmp/.env /var/www/stephan-backend/.env
+              sudo chown ubuntu:ubuntu /var/www/stephan-backend/.env
+              sudo chmod 644 /var/www/stephan-backend/.env
+              echo ".env restored successfully."
             else
-              echo "ERROR: .env backup missing!"
+              echo "ERROR: .env backup missing. Deployment halted."
               exit 1
             fi
+            # Install dependencies and restart
             cd /var/www/stephan-backend
             npm install --production
             pm2 restart all

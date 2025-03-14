@@ -9,59 +9,55 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # Step 1: Checkout code (exclude .env)
+      # Step 1: Checkout code without .env
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          sparse-checkout: |
-            *
-            !.env
+          fetch-depth: 0  # Ensure full history for proper cleanup
 
-      # Step 2: Install dependencies
+      # Step 2: Purge any .env from repository
+      - name: Clean repository
+        run: |
+          # Remove .env if accidentally committed
+          rm -f .env || true
+          # Clean git index
+          git clean -ffdx
+
+      # Step 3: Install dependencies
       - name: Install dependencies
         run: |
           npm install --production
           npm cache clean --force
 
-      # Step 3: Backup existing .env
-      - name: Backup .env
+      # Step 4: Atomic deployment with env preservation
+      - name: Deploy with env protection
         uses: appleboy/ssh-action@v1.0.0
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ubuntu
           key: ${{ secrets.SSH_KEY }}
           script: |
-            sudo cp /var/www/stephan-backend/.env /tmp/.env || true
-            sudo rm -rf /var/www/stephan-backend
-            sudo mkdir -p /var/www/stephan-backend
+            # Create secure temporary directory
+            TMP_DIR=$(mktemp -d -p /tmp)
+            chmod 700 $TMP_DIR
+            
+            # Preserve existing environment
+            sudo cp -a /var/www/stephan-backend/.env $TMP_DIR/ || true
+            
+            # Atomic replacement
+            sudo rsync -av --delete --exclude=.env \
+              --exclude=node_modules \
+              $GITHUB_WORKSPACE/ /var/www/stephan-backend/
+            
+            # Restore environment
+            sudo cp -a $TMP_DIR/.env /var/www/stephan-backend/ || true
             sudo chown -R ubuntu:ubuntu /var/www/stephan-backend
-
-      # Step 4: Deploy code (EXCLUDING .env)
-      - name: Deploy Code
-        uses: appleboy/scp-action@v0.1.6
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ubuntu
-          key: ${{ secrets.SSH_KEY }}
-          source: "."
-          target: "/var/www/stephan-backend"
-          overwrite: true
-          strip_components: 0
-          exclude: |
-            .env
-            .gitignore
-            .github/
-
-      # Step 5: Restore .env and restart
-      - name: Restore .env & Restart
-        uses: appleboy/ssh-action@v1.0.0
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ubuntu
-          key: ${{ secrets.SSH_KEY }}
-          script: |
-            sudo cp /tmp/.env /var/www/stephan-backend/.env || true
-            sudo chmod 644 /var/www/stephan-backend/.env
+            sudo chmod -R 755 /var/www/stephan-backend
+            
+            # Install and restart
             cd /var/www/stephan-backend
             npm install --production
             pm2 restart stephan-backend --update-env
+            
+            # Secure cleanup
+            rm -rf $TMP_DIR

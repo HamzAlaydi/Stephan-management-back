@@ -174,7 +174,6 @@ exports.assignRequest = async (req, res) => {
   `;
 
     await sendEmail(assignedToEmail, "Assigned Maintenance Request", emailHtml);
-
     res.status(200).json(request);
   } catch (error) {
     res.status(500).json({ message: error.message });

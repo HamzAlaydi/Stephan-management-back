@@ -31,7 +31,7 @@ const sendEmail = async (
     console.log({ to });
 
     const mailOptions = {
-      from: `"Stephan Maintenance Management System" <${process.env.MAIL}>`, // More professional sender name
+      from: `"Stephan Maintenance Management System [MMS]" <${process.env.MAIL}>`, // More professional sender name
       to,
       subject,
       [isHTML ? "html" : "text"]: content, // Dynamically switch between HTML & text

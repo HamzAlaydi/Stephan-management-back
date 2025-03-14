@@ -70,3 +70,4 @@ jobs:
             cd /var/www/stephan-backend
             npm install --production
             pm2 restart stephan-backend --update-env
+

@@ -17,29 +17,7 @@ jobs:
           npm install --production
           npm cache clean --force
 
-      - name: Backup .env file
-        uses: appleboy/ssh-action@v1.0.0
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ubuntu
-          key: ${{ secrets.SSH_KEY }}
-          script: |
-            # Remove immutability flag silently
-            sudo chattr -i /var/www/stephan-backend/.env 2>/dev/null || true
-            # Backup .env if it exists
-            if [ -f "/var/www/stephan-backend/.env" ]; then
-              sudo cp /var/www/stephan-backend/.env /tmp/.env
-              echo ".env backup completed."
-            else
-              echo "Warning: .env not found. First deployment?"
-            fi
-            # Clean directory
-            sudo rm -rf /var/www/stephan-backend
-            sudo mkdir -p /var/www/stephan-backend
-            sudo chown -R ubuntu:ubuntu /var/www/stephan-backend
-            sudo chmod -R 755 /var/www/stephan-backend
-
-      - name: Deploy Backend Code
+      - name: Deploy Code
         uses: appleboy/scp-action@v0.1.6
         with:
           host: ${{ secrets.EC2_HOST }}
@@ -47,31 +25,34 @@ jobs:
           key: ${{ secrets.SSH_KEY }}
           source: "."
           target: "/var/www/stephan-backend"
-          overwrite: true
           exclude: |
             .env
-            .gitignore
-            .github/
+            .git
+            .github
+            node_modules
 
-      - name: Restore .env file and Restart Backend
+      - name: Restart Service
         uses: appleboy/ssh-action@v1.0.0
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ubuntu
           key: ${{ secrets.SSH_KEY }}
           script: |
-            if [ -f "/tmp/.env" ]; then
-              sudo cp /tmp/.env /var/www/stephan-backend/.env
-              sudo chown ubuntu:ubuntu /var/www/stephan-backend/.env
-              sudo chmod 644 /var/www/stephan-backend/.env
-              echo ".env restored successfully."
-            else
-              echo "ERROR: .env backup missing. Deployment halted."
-              exit 1
-            fi
-            # Install dependencies and restart
+            # Fix permissions
+            sudo chown -R ubuntu:ubuntu /var/www/stephan-backend
+
+            # Install dependencies
             cd /var/www/stephan-backend
             npm install --production
-            pm2 restart all
-            
-            
+
+            # PM2 management
+            if ! pm2 list | grep -q stephan-backend; then
+              pm2 start ecosystem.config.js
+              pm2 save
+              pm2 startup ubuntu -u ubuntu
+            else
+              pm2 reload ecosystem.config.js --update-env
+            fi
+
+            # Persist process list
+            pm2 save

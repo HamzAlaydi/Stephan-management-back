@@ -1,12 +1,13 @@
 module.exports = {
   apps: [
     {
-      name: "stephan-app",
+      name: "stephan-backend",
       script: "app.js",
-      node_args: "--experimental-modules",
       env: {
         NODE_ENV: "production",
+        PATH: "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
       },
+      env_file: "/var/www/stephan-backend/.env",
     },
   ],
 };
